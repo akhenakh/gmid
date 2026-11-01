@@ -13,18 +13,22 @@ import (
 	"github.com/akhenakh/gmid/internal/app"
 	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/config"
+	gmidmcp "github.com/akhenakh/gmid/internal/mcp"
 	"github.com/akhenakh/gmid/internal/midiio"
 	"github.com/akhenakh/gmid/ui"
 )
 
 func main() {
 	var (
-		pngPath = flag.String("png", "", "render one settled frame to PATH and exit")
-		scene   = flag.String("scene", "shell", "scene preset for headless renders")
-		width   = flag.Int("width", 1440, "headless render width")
-		height  = flag.Int("height", 900, "headless render height")
-		assets  = flag.String("assets", "", "assets directory override")
-		noAudio = flag.Bool("noaudio", false, "do not open the audio device")
+		pngPath  = flag.String("png", "", "render one settled frame to PATH and exit")
+		scene    = flag.String("scene", "shell", "scene preset for headless renders")
+		width    = flag.Int("width", 1440, "headless render width")
+		height   = flag.Int("height", 900, "headless render height")
+		assets   = flag.String("assets", "", "assets directory override")
+		noAudio  = flag.Bool("noaudio", false, "do not open the audio device")
+		mcpOn    = flag.Bool("mcp", true, "start the gmid MCP server")
+		mcpAddr  = flag.String("mcp-addr", "127.0.0.1:8765", "MCP listen address")
+		mcpToken = flag.String("mcp-token", "", "optional bearer token for MCP")
 	)
 	flag.Parse()
 
@@ -65,6 +69,15 @@ func main() {
 	}
 	if *pngPath == "" && !*noAudio {
 		a.MIDI = midiio.New(a)
+	}
+	if *pngPath == "" && *mcpOn && *mcpAddr != "" {
+		mcpServer := gmidmcp.New(a)
+		go func() {
+			log.Printf("MCP: http://%s/mcp (SSE /sse)", *mcpAddr)
+			if err := mcpServer.Serve(*mcpAddr, *mcpToken); err != nil {
+				log.Printf("MCP server: %v", err)
+			}
+		}()
 	}
 
 	if *pngPath != "" {

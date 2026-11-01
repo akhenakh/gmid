@@ -51,6 +51,17 @@ golangci-lint run
 Screenshots are reviewed by the local `Qwen3.8-27B-VISION` model; images never
 enter the coding model's context. See `.operator/guides/visual-qa.md`.
 
+## MCP (drive gmid from an LLM)
+
+`gmid` starts a Model Context Protocol server on `127.0.0.1:8765` by default:
+
+- Streamable HTTP: `http://127.0.0.1:8765/mcp`
+- SSE: `http://127.0.0.1:8765/sse`
+- Disable with `-mcp=false`; change with `-mcp-addr`; add `-mcp-token` for auth.
+
+It exposes transport, song/track inspection, mixer, note editing, library,
+harmony, export, settings and screenshots. See [docs/MCP.md](docs/MCP.md).
+
 ## License
 
 GPL-3.0-or-later. Third-party assets and libraries are recorded in

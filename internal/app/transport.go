@@ -36,6 +36,7 @@ type Engine interface {
 	PitchBend(ch, value int)
 	Snapshot() audio.Snapshot
 	OutputDelay() float64
+	SoundFontPath() string
 	Close()
 }
 

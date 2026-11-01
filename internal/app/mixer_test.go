@@ -11,6 +11,7 @@ import (
 )
 
 func TestMixerBakeSavesVersion(t *testing.T) {
+	t.Setenv("GMID_CONFIG", filepath.Join(t.TempDir(), "prefs.json"))
 	demo := "../../assets/demo/Scott Joplin - Entertainer.mid"
 	if _, err := os.Stat(demo); err != nil {
 		t.Skip("demo missing")
