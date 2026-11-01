@@ -18,6 +18,7 @@ reference and is not built or shipped.
 | `internal/edit` | Note editor buffer and history (later) |
 | `internal/library` | Folder scan, metadata cache, search (later) |
 | `internal/midiio` | rtmidi input and diagnostics (later) |
+| `internal/mcp` | In-process MCP server (Streamable HTTP + SSE) exposing the live app |
 | `ui` | Shell, roll, keyboard, mixer, explorers, settings, windows |
 
 ## Data flow
