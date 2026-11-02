@@ -14,6 +14,8 @@ import (
 // engines both implement it.
 type Engine interface {
 	Load(s *song.Song)
+	LoadSoundFont(path string) error
+	StartOutput(device string, exclusive bool, frames int) error
 	Play(from float64)
 	Pause()
 	Stop()
@@ -24,11 +26,16 @@ type Engine interface {
 	SetMetronome(on bool, volume float64)
 	SetCountIn(bars int)
 	SetMasterVolume(float64)
+	SetMasterTone(float64)
+	SetCompressor(bool)
 	SetTrackAudible(track int, audible bool)
 	SetChannelMix(ch int, volume, pan, chorus, reverb float64)
 	NoteOn(ch, key, vel int)
 	NoteOff(ch, key int)
+	Control(ch, cc, value int)
+	PitchBend(ch, value int)
 	Snapshot() audio.Snapshot
+	OutputDelay() float64
 	Close()
 }
 

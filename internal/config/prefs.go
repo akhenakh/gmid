@@ -14,9 +14,10 @@ const prefsVersion = 1
 type Prefs struct {
 	Version int `json:"version"`
 
-	LibraryFolder string `json:"libraryFolder"`
-	LastFile      string `json:"lastFile"`
-	ShowDemo      bool   `json:"showDemo"`
+	LibraryFolder      string `json:"libraryFolder"`
+	LastFile           string `json:"lastFile"`
+	ShowDemo           bool   `json:"showDemo"`
+	ExportAudioEnabled bool   `json:"exportAudioEnabled"`
 
 	SoundEngine  string  `json:"soundEngine"` // gm | studio | native
 	SoundFont    string  `json:"soundFont"`   // absolute path or bundled name
@@ -84,6 +85,15 @@ type Prefs struct {
 	MasterCompressor bool    `json:"masterCompressor"`
 
 	Stars []string `json:"stars"`
+
+	TempoFixes map[string]TempoFix `json:"tempoFixes,omitempty"`
+}
+
+// TempoFix is a tap-tempo correction stored by song identity.
+type TempoFix struct {
+	PeriodSec   float64 `json:"periodSec"`
+	AnchorSec   float64 `json:"anchorSec"`
+	BeatsPerBar int     `json:"beatsPerBar"`
 }
 
 // Defaults returns the fresh-install configuration.
@@ -91,6 +101,7 @@ func Defaults() Prefs {
 	return Prefs{
 		Version:            prefsVersion,
 		ShowDemo:           true,
+		ExportAudioEnabled: true,
 		SoundEngine:        "gm",
 		ShareMode:          "shared",
 		BufferFrames:       256,

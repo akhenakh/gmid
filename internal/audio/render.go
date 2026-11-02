@@ -39,6 +39,9 @@ func (e *Engine) renderLocked(l, r []float32) {
 		e.pos = end
 		off = frames
 	}
+	if e.compressor || e.masterTone != 0.5 {
+		e.processMasterLocked(l, r)
+	}
 	peak := 0.0
 	for i := range l {
 		a := math.Abs(float64(l[i]))
@@ -123,6 +126,42 @@ func (e *Engine) renderSpanLocked(outL, outR []float32, from, to float64) {
 		e.idx++
 	}
 	renderTo(to)
+}
+
+func (e *Engine) processMasterLocked(l, r []float32) {
+	for i := range l {
+		xL, xR := l[i], r[i]
+		if e.masterTone != 0.5 {
+			a := float32(0.05 + e.masterTone*0.9)
+			e.toneStateL += a * (xL - e.toneStateL)
+			e.toneStateR += a * (xR - e.toneStateR)
+			if e.masterTone < 0.5 {
+				xL, xR = e.toneStateL, e.toneStateR
+			} else {
+				amount := float32((e.masterTone - 0.5) * 2)
+				xL += (xL - e.toneStateL) * amount
+				xR += (xR - e.toneStateR) * amount
+			}
+		}
+		if e.compressor {
+			a := float32(math.Abs(float64(xL)))
+			if b := float32(math.Abs(float64(xR))); b > a {
+				a = b
+			}
+			if a > e.compEnv {
+				e.compEnv += (a - e.compEnv) * 0.4
+			} else {
+				e.compEnv += (a - e.compEnv) * 0.002
+			}
+			if e.compEnv > 0.7 {
+				gain := 0.7 + (e.compEnv-0.7)/4
+				gain /= e.compEnv
+				xL *= gain
+				xR *= gain
+			}
+		}
+		l[i], r[i] = xL, xR
+	}
 }
 
 func (e *Engine) isBar(t float64) bool {

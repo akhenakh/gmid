@@ -167,8 +167,11 @@ func PianoKeyboard(min, max int, height float32, active map[int]KeyState,
 						}
 					}
 					Container(Attrs(FixSize(k.W-1, 20), Float(0, h-19),
-						MainAlign(AlignMiddle), CrossAlign(AlignEnd), Pad(2)), func() {
+						MainAlign(AlignMiddle), CrossAlign(AlignEnd), Pad(4)), func() {
 						name := KeyLabel(m, showNames, showOctaves)
+						if k.W < 14 {
+							name = KeyLabel(m, false, showOctaves)
+						}
 						if name != "" {
 							Label(name, FontSize(9), TextColorVec(labelCol))
 						}

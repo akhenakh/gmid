@@ -9,6 +9,7 @@ import (
 
 	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/hands"
+	gimport "github.com/akhenakh/gmid/internal/import"
 	"github.com/akhenakh/gmid/internal/smf"
 	"github.com/akhenakh/gmid/internal/song"
 )
@@ -40,7 +41,12 @@ func (a *App) LoadFile(path string) error {
 	case ".mid", ".midi", ".kar":
 		return a.loadSMF(path)
 	case ".musicxml", ".xml", ".mxl", ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".cap", ".capx":
-		return fmt.Errorf("%s import arrives in a later milestone", ext)
+		s, err := gimport.Load(path)
+		if err != nil {
+			return err
+		}
+		a.InstallSong(s)
+		return nil
 	default:
 		return fmt.Errorf("unsupported file type: %s", ext)
 	}
@@ -63,11 +69,12 @@ func (a *App) InstallSong(s *song.Song) {
 		a.Notify("Closed song")
 		return
 	}
+	a.Song = s
 	if a.Prefs.SkipEmptyBars {
 		s.ApplyLeadCut(a.Prefs.KeepDrumCountIn)
 	}
+	a.ApplyStoredTempoFix()
 	smf.ApplyHandColors(s, a.Prefs.HandLH, a.Prefs.HandRH)
-	a.Song = s
 	a.focusSnapshot = nil
 	a.Mixes = map[int]audio.ChannelMix{}
 	if a.Prefs.HandAssignment {

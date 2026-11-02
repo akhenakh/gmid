@@ -13,6 +13,7 @@ import (
 	"github.com/akhenakh/gmid/internal/app"
 	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/config"
+	"github.com/akhenakh/gmid/internal/midiio"
 	"github.com/akhenakh/gmid/ui"
 )
 
@@ -43,6 +44,9 @@ func main() {
 	if err != nil {
 		log.Printf("preferences: %v (using defaults)", err)
 	}
+	if prefs.ShowDemo {
+		config.SeedDemo(assetsDir, prefs.LibraryFolder)
+	}
 	ui.Install(prefs.Theme == "warm")
 
 	a := app.New(prefs, assetsDir, *scene)
@@ -58,6 +62,9 @@ func main() {
 	prepareScene(a, *scene)
 	if engine != nil {
 		go loadSoundFont(a, engine, prefs)
+	}
+	if *pngPath == "" && !*noAudio {
+		a.MIDI = midiio.New(a)
 	}
 
 	if *pngPath != "" {
@@ -76,6 +83,9 @@ func main() {
 	shireiapp.Run(func() { ui.Root(a) })
 	if engine != nil {
 		engine.Close()
+	}
+	if a.MIDI != nil {
+		a.MIDI.Close()
 	}
 }
 
@@ -142,5 +152,13 @@ func prepareScene(a *app.App, scene string) {
 		a.UI.Presentation = true
 	case "keys-floating":
 		a.UI.FloatingKeys = true
+	case "note-editor":
+		a.BeginNoteEditor()
+	case "chord-explorer":
+		a.UI.ChordExplorerOpen = true
+	case "scale-explorer":
+		a.UI.ScaleExplorerOpen = true
+	case "export":
+		a.UI.ExportOpen = true
 	}
 }

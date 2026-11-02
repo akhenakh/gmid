@@ -25,11 +25,28 @@ func SettingsWindow(a *app.App) {
 		})
 		Caption("Every setting is described in one line. Ctrl+, toggles this window.")
 		HDivider()
+		Container(Attrs(Row, CrossMid, Gap(8), ExpandAcross()), func() {
+			Container(Attrs(FixWidth(440), Gap(2)), func() {
+				NextAccessLabel("Search settings")
+				TextInput(&a.UI.SettingsQuery)
+				Caption("Search names; click a match to jump to its group")
+			})
+		})
+		if results := searchSettingNames(a.UI.SettingsQuery); len(results) > 0 {
+			Container(Attrs(Row, Wrap, Gap(3), ExpandAcross()), func() {
+				for _, r := range results {
+					if CtrlButton(NoIcon, r.name, true) {
+						a.UI.SettingsGroup = r.group
+					}
+				}
+			})
+		}
 		Container(Attrs(Row, Gap(3), Wrap, ExpandAcross()), func() {
 			type tab struct{ id, label string }
 			tabs := []tab{
-				{"audio", "Audio"}, {"playback", "Playback"}, {"keyboard", "Keyboard"},
-				{"practice", "Practice"}, {"appearance", "Appearance"},
+				{"audio", "Audio"}, {"midi", "MIDI Keyboard"}, {"library", "Library"}, {"playback", "Playback"},
+				{"practice", "Practice"}, {"editing", "Editing"}, {"notation", "Notation"},
+				{"keyboard", "Keyboard"}, {"appearance", "Appearance"},
 			}
 			for _, t := range tabs {
 				if a.UI.SettingsGroup == t.id {
@@ -47,11 +64,13 @@ func SettingsWindow(a *app.App) {
 			if a.UI.SettingsGroup == "audio" {
 				SectionTitle("Audio")
 				SettingRow("Sound engine", "GM is instant; Studio and Native use soundfonts.", func() {
-					CompactSegmented(&a.Prefs.SoundEngine, func() {
+					if CompactSegmented(&a.Prefs.SoundEngine, func() {
 						SegmentedCell("GM", "gm")
 						SegmentedCell("Studio", "studio")
 						SegmentedCell("Native", "native")
-					})
+					}) {
+						a.SetSoundEngine(a.Prefs.SoundEngine)
+					}
 				})
 				SettingRow("Native output", "Exclusive is shortest; Shared lets other apps play.", func() {
 					v := a.Prefs.ShareMode == "exclusive"
@@ -79,6 +98,73 @@ func SettingsWindow(a *app.App) {
 					a.SavePrefs()
 				})
 
+			}
+
+			if a.UI.SettingsGroup == "midi" {
+				SectionTitle("MIDI Keyboard")
+				devices := a.MIDIDevices()
+				SettingRow("Devices", "Every input port is opened; play on any of them.", func() {
+					Label(fmt.Sprintf("%d", len(devices)), Fonts("JetBrains Mono"), FontSize(12), TextColorVec(ColText))
+				})
+				if len(devices) == 0 {
+					Caption("No MIDI input detected. Connect a keyboard; ports are rescanned every 2 s.")
+				} else {
+					for _, name := range devices {
+						Caption("• " + name)
+					}
+				}
+				SettingRow("Touch response", "Velocity curve from soft to hard.", func() {
+					v := float32(a.Prefs.TouchResponse)
+					Slider(&v, SliderAttrs{Min: 1, Max: 100, Step: 1, Width: 130})
+					if int(v) != a.Prefs.TouchResponse {
+						a.Prefs.TouchResponse = int(v)
+						a.SavePrefs()
+					}
+				})
+				SettingRow("Pedals & controls", "Sustain, expression, modulation and bend.", func() {
+					ToggleSwitch(&a.Prefs.PedalsControls)
+					a.SavePrefs()
+				})
+				SettingRow("Double-note filter", "Ignore an identical note already held.", func() {
+					ToggleSwitch(&a.Prefs.DuplicateFilter)
+					a.SavePrefs()
+				})
+				SettingRow("Live response", "Balanced is lower latency; Stable is gentler.", func() {
+					CompactSegmented(&a.Prefs.LiveResponse, func() {
+						SegmentedCell("Stable", "stable")
+						SegmentedCell("Balanced", "balanced")
+					})
+				})
+				SettingRow("Delay check", "Output buffer adds to the key-to-speaker time.", func() {
+					ms := 0.0
+					if a.Engine != nil {
+						ms = a.Engine.OutputDelay() * 1000
+					}
+					Label(fmt.Sprintf("%.1f ms", ms), Fonts("JetBrains Mono"), FontSize(12), TextColorVec(ColText))
+				})
+				Caption("Key → speaker: touch response and app handling are reported in the status log; the output buffer above is measured from the device.")
+			}
+
+			if a.UI.SettingsGroup == "library" {
+				SectionTitle("MIDI Files & Library")
+				SettingRow("Library folder", "Where songs, versions and exports live.", func() {
+					if CtrlButton(TypFolderOpen, "Choose…", true) {
+						a.UI.FileBrowserOpen = true
+					}
+				})
+				Caption(a.Prefs.LibraryFolder)
+				SettingRow("Show demo content", "The bundled demo songs in the Library.", func() {
+					ToggleSwitch(&a.Prefs.ShowDemo)
+					a.SavePrefs()
+				})
+				SettingRow("Chord transcription", "Show the chord-chart action for songs.", func() {
+					ToggleSwitch(&a.Prefs.ChordTranscription)
+					a.SavePrefs()
+				})
+				SettingRow("Export to audio", "Show the export action in the library.", func() {
+					ToggleSwitch(&a.Prefs.ExportAudioEnabled)
+					a.SavePrefs()
+				})
 			}
 
 			if a.UI.SettingsGroup == "playback" {
@@ -202,6 +288,78 @@ func SettingsWindow(a *app.App) {
 
 			}
 
+			if a.UI.SettingsGroup == "editing" {
+				SectionTitle("Editing")
+				SettingRow("Hand assignment", "Colour piano notes by the hand that plays them.", func() {
+					ToggleSwitch(&a.Prefs.HandAssignment)
+					a.SavePrefs()
+					a.ReapplySongView()
+				})
+				SettingRow("Hand badges", "Small L/R letters on hand-coloured keys.", func() {
+					ToggleSwitch(&a.Prefs.HandTags)
+					a.SavePrefs()
+				})
+				SettingRow("Note editor", "Edit notes on the roll.", func() {
+					ToggleSwitch(&a.Prefs.NoteEditor)
+					a.SavePrefs()
+				})
+				SettingRow("Track VU lines", "Track colour lines pulse with the level.", func() {
+					ToggleSwitch(&a.Prefs.TrackVU)
+					a.SavePrefs()
+				})
+				if Button(TypThMenu, "Open MIDI Playback Editor") {
+					a.UI.PlaybackEditorOpen = true
+				}
+			}
+
+			if a.UI.SettingsGroup == "notation" {
+				SectionTitle("Chords & Notation")
+				SettingRow("Note naming", "English, Central European or solfège.", func() {
+					CompactSegmented(&a.Prefs.NoteNaming, func() {
+						SegmentedCell("C D E", "english")
+						SegmentedCell("C D H", "central-european")
+						SegmentedCell("Do Re", "solfege")
+					})
+					a.SavePrefs()
+				})
+				SettingRow("Accidentals", "Sharps or flats.", func() {
+					v := a.Prefs.Accidentals == "sharp"
+					ToggleSwitch(&v)
+					if v {
+						a.Prefs.Accidentals = "sharp"
+					} else {
+						a.Prefs.Accidentals = "flat"
+					}
+					a.SavePrefs()
+				})
+				SettingRow("Chord tracking", "Which instruments the chord display follows.", func() {
+					CompactSegmented(&a.Prefs.ChordTracking, func() {
+						SegmentedCell("Auto", "auto")
+						SegmentedCell("Harmony", "harmony")
+						SegmentedCell("Instrument", "instrument")
+					})
+					a.SavePrefs()
+				})
+				SettingRow("Chord naming", "Abbreviations or symbols.", func() {
+					CompactSegmented(&a.Prefs.ChordNaming, func() {
+						SegmentedCell("Abbrev", "abbreviation")
+						SegmentedCell("Symbols", "symbol")
+					})
+					a.SavePrefs()
+				})
+				SettingRow("Chord reading", "How much detail to show.", func() {
+					CompactSegmented(&a.Prefs.ChordReading, func() {
+						SegmentedCell("Simple", "simple")
+						SegmentedCell("Full", "full")
+					})
+					a.SavePrefs()
+				})
+				SettingRow("Chord Prompter", "Past, current and upcoming chords.", func() {
+					ToggleSwitch(&a.Prefs.ChordPrompter)
+					a.SavePrefs()
+				})
+			}
+
 			if a.UI.SettingsGroup == "appearance" {
 				SectionTitle("Appearance")
 				SettingRow("Warm theme", "Cream and green instead of cool charcoal.", func() {
@@ -244,15 +402,15 @@ func SettingsWindow(a *app.App) {
 	})
 }
 
-// LibraryWindow browses a folder and opens a song.
-func LibraryWindow(a *app.App) {
-	Modal(780, func() { a.UI.LibraryOpen = false }, func() {
+// FileBrowserWindow browses a folder and opens one song.
+func FileBrowserWindow(a *app.App) {
+	Modal(780, func() { a.UI.FileBrowserOpen = false }, func() {
 		ModAttrs(Pad(18), Gap(10))
 		Container(Attrs(Row, CrossMid, ExpandAcross()), func() {
 			Label("Open a song", FontSize(20), FontWeight(WeightBold), TextColorVec(ColText))
 			FlexSpacer()
 			if IconButton(TypTimes, "Close", true) {
-				a.UI.LibraryOpen = false
+				a.UI.FileBrowserOpen = false
 			}
 		})
 		if a.UI.LibraryPath == "" {
@@ -273,7 +431,7 @@ func LibraryWindow(a *app.App) {
 			&a.UI.LibrarySelection, attrs) {
 			if a.UI.LibrarySelection != "" {
 				path := a.UI.LibrarySelection
-				a.UI.LibraryOpen = false
+				a.UI.FileBrowserOpen = false
 				if err := a.LoadFile(path); err != nil {
 					a.Notify(err.Error())
 				}
@@ -284,7 +442,7 @@ func LibraryWindow(a *app.App) {
 		Container(Attrs(Row, Gap(8), Wrap), func() {
 			for _, path := range a.DemoFiles() {
 				if Button(TypMediaPlay, trim(path, 44)) {
-					a.UI.LibraryOpen = false
+					a.UI.FileBrowserOpen = false
 					if err := a.LoadFile(path); err != nil {
 						a.Notify(err.Error())
 					}

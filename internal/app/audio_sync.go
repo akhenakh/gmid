@@ -33,6 +33,8 @@ func (a *App) PushAudioState() {
 		a.Engine.SetTrackAudible(i, audible)
 	}
 	a.Engine.SetMasterVolume(a.Prefs.MasterVolume)
+	a.Engine.SetMasterTone(a.Prefs.MasterTone)
+	a.Engine.SetCompressor(a.Prefs.MasterCompressor)
 	a.Engine.SetMetronome(a.Prefs.Metronome, a.Prefs.MetronomeVolume)
 	if a.Prefs.CountIn {
 		a.Engine.SetCountIn(a.Prefs.CountInBars)

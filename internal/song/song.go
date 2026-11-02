@@ -34,6 +34,12 @@ type Song struct {
 	Beats []float64
 	Bars  []float64
 
+	BeatFixed    bool
+	BeatPeriod   float64
+	BeatAnchor   float64
+	BeatBpb      int
+	TempoSuspect bool
+
 	// LeadCut is the first bar worth showing; the file's own ticks are kept.
 	Lead LeadCut
 

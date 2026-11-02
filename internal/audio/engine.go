@@ -63,6 +63,11 @@ type Engine struct {
 	metronomeOn  bool
 	metronomeVol float64
 	masterVol    float64
+	masterTone   float64
+	compressor   bool
+	toneStateL   float32
+	toneStateR   float32
+	compEnv      float32
 
 	countInBars    int
 	countInActive  bool
@@ -297,6 +302,20 @@ func (e *Engine) SetMasterVolume(v float64) {
 	e.mu.Unlock()
 }
 
+// SetMasterTone sets the master tone control (0 dark … 1 bright).
+func (e *Engine) SetMasterTone(v float64) {
+	e.mu.Lock()
+	e.masterTone = clamp01(v)
+	e.mu.Unlock()
+}
+
+// SetCompressor enables the master compressor.
+func (e *Engine) SetCompressor(on bool) {
+	e.mu.Lock()
+	e.compressor = on
+	e.mu.Unlock()
+}
+
 // SetTrackAudible applies mute/solo for a track.
 func (e *Engine) SetTrackAudible(track int, audible bool) {
 	if track < 0 || track >= len(e.audible) {
@@ -341,6 +360,33 @@ func (e *Engine) NoteOff(ch, key int) {
 		return
 	}
 	e.synth.NoteOff(15, int32(clampKey(key)))
+}
+
+// Control sends a live controller move (pedals, expression, …).
+func (e *Engine) Control(ch, cc, value int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.synth == nil {
+		return
+	}
+	e.synth.ProcessMidiMessage(15, 0xB0, int32(clampCC(cc)), int32(clampCC(value)))
+}
+
+// PitchBend sends a live pitch bend in -8192..8191.
+func (e *Engine) PitchBend(ch, value int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.synth == nil {
+		return
+	}
+	if value < -8192 {
+		value = -8192
+	}
+	if value > 8191 {
+		value = 8191
+	}
+	v := value + 8192
+	e.synth.ProcessMidiMessage(15, 0xE0, int32(v&0x7f), int32(v>>7))
 }
 
 // Snapshot returns the UI-facing state.

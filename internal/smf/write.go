@@ -50,10 +50,14 @@ func Write(s *song.Song) ([]byte, error) {
 	for _, l := range s.Lyrics {
 		metaEvents = append(metaEvents, writeEvent{l.Tick, 1, smf.MetaLyric(l.Text)})
 	}
+	outIndex := 0
 	for i := range s.Tracks {
+		if s.Tracks[i].Excluded {
+			continue
+		}
 		t := &s.Tracks[i]
-		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_NAME:%d:%s", i, t.Name))})
-		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_COLOR:%d:%s", i, t.Color))})
+		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_NAME:%d:%s", outIndex, t.Name))})
+		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_COLOR:%d:%s", outIndex, t.Color))})
 		visible := 0
 		if t.Visible {
 			visible = 1
@@ -62,8 +66,9 @@ func Write(s *song.Song) ([]byte, error) {
 		if t.OnKeyboard {
 			keyboard = 1
 		}
-		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_VISIBLE:%d:%d", i, visible))})
-		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_KEYBOARD:%d:%d", i, keyboard))})
+		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_VISIBLE:%d:%d", outIndex, visible))})
+		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_TRACK_KEYBOARD:%d:%d", outIndex, keyboard))})
+		outIndex++
 	}
 	for _, h := range s.Meta.History {
 		metaEvents = append(metaEvents, writeEvent{0, 1, smf.MetaText(fmt.Sprintf("GMID_HISTORY:%d:%s:%s", h.Timestamp, h.Kind, h.Summary))})
@@ -185,7 +190,7 @@ func SaveVersion(s *song.Song, library, kind, summary string) (string, error) {
 		return "", err
 	}
 	base := strings.TrimSuffix(filepath.Base(s.Path), filepath.Ext(s.Path))
-	name := base + "_GMID_v1.mid"
+	var name string
 	for v := 1; ; v++ {
 		name = fmt.Sprintf("%s_GMID_v%d.mid", base, v)
 		if _, err := os.Stat(filepath.Join(dir, name)); os.IsNotExist(err) {

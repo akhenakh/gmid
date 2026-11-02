@@ -18,10 +18,22 @@ func HandleShortcuts(a *app.App) {
 	switch {
 	case c.Key == KeyF11 && c.Mod&^ModShift == 0:
 		a.UI.Presentation = !a.UI.Presentation
+	case a.Edit.Active && (c.Key == KeyDeleteBackward || c.Key == KeyDeleteForward):
+		a.DeleteSelected()
+	case a.Edit.Active && c.Key == KeyZ && c.Mod&primary != 0:
+		if c.Mod&ModShift != 0 {
+			a.RedoNoteEdit()
+		} else {
+			a.UndoNoteEdit()
+		}
+	case a.Edit.Active && c.Key == KeyY && c.Mod&primary != 0:
+		a.RedoNoteEdit()
 	case c.Key == KeySpace && c.Mod == ModNone:
 		a.TogglePlay()
 	case c.Key == KeyEscape:
 		switch {
+		case a.Edit.Active:
+			a.EndNoteEditor()
 		case a.UI.Presentation:
 			a.UI.Presentation = false
 		case a.UI.Confirm != nil:
@@ -45,6 +57,12 @@ func HandleShortcuts(a *app.App) {
 		a.StepThrough(-1, false)
 	case c.Key == KeyO && c.Mod&primary != 0:
 		a.UI.LibraryOpen = !a.UI.LibraryOpen
+	case c.Key == KeyUp && c.Mod&primary != 0:
+		a.Prefs.AppZoom = minF(a.Prefs.AppZoom+0.1, 1.5)
+		a.SavePrefs()
+	case c.Key == KeyDown && c.Mod&primary != 0:
+		a.Prefs.AppZoom = maxF(a.Prefs.AppZoom-0.1, 0.8)
+		a.SavePrefs()
 	case c.Key == KeyP && c.Mod&primary != 0:
 		a.UI.SettingsOpen = !a.UI.SettingsOpen
 	case c.Key == KeyM && c.Mod&primary != 0 && c.Mod&ModShift != 0:

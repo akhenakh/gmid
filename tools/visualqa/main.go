@@ -126,12 +126,13 @@ func buildPrompt(scene, extra string) string {
 - empty states and panel headers clear.
 Return a short JSON object on the last line: {"pass": true|false, "issues": ["..."]}. List only concrete visual defects, not feature requests.`
 	specific := map[string]string{
-		"shell":        "This is the empty shell: expect a top bar, left setup panel, empty piano roll and keyboard.",
-		"roll":         "This is a loaded song: the piano roll is a waterfall, so the playhead is the horizontal amber line near the bottom; note rectangles fall downward toward the keyboard. Check bar lines, notes, and keyboard alignment.",
-		"mixer":        "This is the console mixer: check channel strips, sliders, meters and header spacing.",
-		"settings":     "This is the settings window: check group headings, row alignment, control widths and scrolling.",
-		"library":      "This is the file browser: check the path field, file list and demo buttons.",
-		"presentation": "This is presentation mode: only the roll and keyboard should be visible.",
+		"shell":         "This is the empty shell: expect a top bar, left setup panel, empty piano roll and keyboard.",
+		"roll":          "This is a loaded song: the piano roll is a waterfall, so the playhead is the horizontal amber line near the bottom; note rectangles fall downward toward the keyboard. Check bar lines, notes, and keyboard alignment.",
+		"mixer":         "This is the console mixer: check channel strips, sliders, meters and header spacing.",
+		"settings":      "This is the settings window: check group headings, row alignment, control widths and scrolling.",
+		"library":       "This is the file browser: check the path field, file list and demo buttons.",
+		"keys-floating": "This is a floating keyboard panel. It intentionally overlays the roll; check that the panel is contained in the window, its header and keys are readable, and its resize handle is visible — overlap with the background is expected.",
+		"presentation":  "This is presentation mode: only the roll and keyboard should be visible.",
 	}[scene]
 	if specific != "" {
 		common += "\nScene: " + specific

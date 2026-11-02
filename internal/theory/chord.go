@@ -64,13 +64,13 @@ func DetectChord(midis []int) string {
 		return "—"
 	}
 	sort.Ints(pcs)
-	bass := ((midis[0] % 12) + 12) % 12
+	bass := midis[0]
 	for _, m := range midis {
-		pc := ((m % 12) + 12) % 12
-		if pc < bass {
-			bass = pc
+		if m < bass {
+			bass = m
 		}
 	}
+	bass = ((bass % 12) + 12) % 12
 
 	bestScore := -1
 	bestName := "—"

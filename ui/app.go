@@ -14,7 +14,7 @@ import (
 const (
 	topBarHeight    = 54
 	sidePanelWidth  = 276
-	trackPanelWidth = 268
+	trackPanelWidth = 290
 	keyboardHeight  = 150
 )
 
@@ -22,6 +22,7 @@ const (
 func Root(a *app.App) {
 	a.SyncEngine()
 	a.UpdateHits()
+	GetHost().ComfortScale = clampf(float32(a.Prefs.AppZoom), 0.8, 1.5)
 	ModAttrs(UseSurface(SurfaceCanvas),
 		AmendTextStyle(Fonts("Inter"), FontSize(13)))
 
@@ -100,6 +101,10 @@ func TopBar(a *app.App) {
 
 		tempoControl(a)
 		keyControl(a)
+		if a.Prefs.TempoWarnings && a.Song != nil && a.Song.TempoSuspect {
+			Badge(ColAmber, 7)
+			Caption("beat may not match")
+		}
 
 		if IconButton(TypArrowRepeat, "Loop region", a.Song != nil) {
 			a.ToggleLoop()
@@ -149,6 +154,9 @@ func TopBar(a *app.App) {
 		if IconButton(TypArrowMaximise, "Presentation mode (F11)", true) {
 			a.UI.Presentation = true
 		}
+		if IconButton(TypKeyboard, "Floating keyboard", true) {
+			a.UI.FloatingKeys = !a.UI.FloatingKeys
+		}
 	})
 }
 
@@ -186,14 +194,16 @@ func MainColumn(a *app.App) {
 			LoopStrip(a)
 		}
 		KeyboardBar(a)
-		bed := Container(Attrs(ExpandAcross(), Corners(8), Clip,
-			BackgroundVec(Col("#08080b")), BorderWidth(1),
-			BorderColorVec(Alpha(ColBorder, .6))), func() {
-			min, max := KeyRange(a.Prefs.KeyRange)
-			PianoKeyboard(min, max, keyboardHeight, soundingKeys(a),
-				a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
-		})
-		_ = bed
+		if !a.UI.FloatingKeys {
+			bed := Container(Attrs(ExpandAcross(), Corners(8), Clip, Pad2(0, 1),
+				BackgroundVec(Col("#08080b")), BorderWidth(1),
+				BorderColorVec(Alpha(ColBorder, .6))), func() {
+				min, max := KeyRange(a.Prefs.KeyRange)
+				PianoKeyboard(min, max, keyboardHeight, soundingKeys(a),
+					a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
+			})
+			_ = bed
+		}
 	})
 }
 
@@ -203,7 +213,7 @@ func RollHeader(a *app.App) {
 			Caption("Open a file to begin")
 		} else {
 			Caption(fmt.Sprintf("Bar %d · %s / %d", a.Song.BarNumberAt(a.Transport.Time),
-				fmt.Sprintf("%.0f", a.Song.BPMAt(a.Transport.Time)), a.Song.PPQ))
+				fmt.Sprintf("%.0f", a.Song.EffectiveBPM(a.Transport.Time)), a.Song.PPQ))
 			if a.Transport.Speed != 1 {
 				Badge(ColAmber, 6)
 				Caption(fmt.Sprintf("%.0f%% speed", a.Transport.Speed*100))
@@ -214,9 +224,22 @@ func RollHeader(a *app.App) {
 			}
 		}
 		FlexSpacer()
+		if a.Edit.Active {
+			EditToolbar(a)
+			FlexSpacer()
+		}
 		if a.Prefs.TapTempo && a.Song != nil {
-			if CtrlButton(TypTime, "TAP", true) {
-				a.ToggleMetronome()
+			label := "TAP"
+			if n := a.TapCount(); n > 0 {
+				label = fmt.Sprintf("TAP %d", n)
+			}
+			if CtrlButton(TypTime, label, true) {
+				a.TapTempo()
+			}
+			if a.Song.BeatFixed {
+				if CtrlButton(TypRefresh, "Clear tap tempo", true) {
+					a.ClearTempoFix()
+				}
 			}
 		}
 		if IconButton(TypFolderOpen, "Library", true) {
@@ -228,6 +251,18 @@ func RollHeader(a *app.App) {
 			} else {
 				a.UI.MixerOpen = true
 			}
+		}
+		if CtrlButton(NoIcon, "Chords", true) {
+			a.UI.ChordExplorerOpen = !a.UI.ChordExplorerOpen
+		}
+		if CtrlButton(NoIcon, "Scales", true) {
+			a.UI.ScaleExplorerOpen = !a.UI.ScaleExplorerOpen
+		}
+		if IconButton(TypExport, "Export to audio", a.Song != nil) {
+			a.UI.ExportOpen = true
+		}
+		if IconButton(TypPrinter, "Chord chart PDF", a.Song != nil) {
+			a.TranscribeChordChart()
 		}
 	})
 }
@@ -276,12 +311,16 @@ func LeftPanel(a *app.App) {
 			ScrollBars()
 
 			SectionTitle("Sound")
-			SettingRow("Engine", "GM is instant; Studio and Native use soundfonts.", func() {
-				CompactSegmented(&a.Prefs.SoundEngine, func() {
+			Container(Attrs(Gap(3), Pad2(6, 2)), func() {
+				Label("Engine", FontSize(12), TextColorVec(ColText))
+				Caption("GM is instant; Studio and Native use soundfonts.")
+				if CompactSegmented(&a.Prefs.SoundEngine, func() {
 					SegmentedCell("GM", "gm")
 					SegmentedCell("Studio", "studio")
 					SegmentedCell("Native", "native")
-				})
+				}) {
+					a.SetSoundEngine(a.Prefs.SoundEngine)
+				}
 			})
 			SettingRow("Master volume", "Persists across sessions.", func() {
 				v := float32(a.Prefs.MasterVolume)
@@ -339,7 +378,7 @@ func LeftPanel(a *app.App) {
 			}
 			FlexSpacer()
 			if a.Status != "" {
-				Caption(a.Status)
+				Label(a.Status, FontSize(11), TextColorVec(ColTextDim))
 			}
 		})
 	})
@@ -348,7 +387,12 @@ func LeftPanel(a *app.App) {
 // SettingRow places a control to the right of a title and one-line hint.
 func SettingRow(title, hint string, control func()) {
 	Container(Attrs(Row, CrossMid, ExpandAcross(), Gap(10), Pad2(6, 2)), func() {
-		Container(Attrs(Grow(1), Gap(0)), func() {
+		w := GetResolvedWidth()
+		textMax := float32(0)
+		if w > 150 {
+			textMax = w - 110
+		}
+		Container(Attrs(Grow(1), Gap(0), MaxWidth(textMax)), func() {
 			Label(title, FontSize(12), TextColorVec(ColText))
 			Caption(hint)
 		})
@@ -373,8 +417,18 @@ func TrackPanel(a *app.App) {
 			if IconButton(TypCog, "Track settings", true) {
 				a.UI.SettingsOpen = true
 			}
+			if IconButton(TypThMenu, "MIDI Playback Editor", a.Song != nil) {
+				a.UI.PlaybackEditorOpen = true
+			}
+			if IconButton(TypPen, "Note Editor", a.Prefs.NoteEditor && a.Song != nil) {
+				if a.Edit.Active {
+					a.EndNoteEditor()
+				} else {
+					a.BeginNoteEditor()
+				}
+			}
 		})
-		Caption("Click a name to select; icons toggle sound and visibility.")
+		Caption("Mute · Solo · Eye")
 		Divider()
 		Container(Attrs(Viewport), func() {
 			ScrollOnInput()
@@ -401,14 +455,14 @@ func trackRow(a *app.App, i int) {
 			return ColPanel
 		}())), func() {
 		Badge(TrackColor(t.Color), 9)
-		Container(Attrs(Grow(1), Gap(0)), func() {
-			Label(t.Name, FontSize(11), TextColorVec(func() Vec4 {
+		Container(Attrs(Grow(1), Gap(0), MaxWidth(150)), func() {
+			Label(stripName(t.Name), FontSize(11), TextColorVec(func() Vec4 {
 				if t.Muted || t.Excluded {
 					return ColTextMute
 				}
 				return ColText
 			}()))
-			Caption(fmt.Sprintf("%s · ch %d", t.GMName, t.Channel+1))
+			Caption(stripName(t.GMName))
 		})
 		if IconButton(iconBool(t.Muted, TypVolumeMute, TypVolume), "Mute", true) {
 			t.Muted = !t.Muted
@@ -438,8 +492,29 @@ func Overlays(a *app.App) {
 	if a.UI.LibraryOpen {
 		LibraryWindow(a)
 	}
+	if a.UI.FileBrowserOpen {
+		FileBrowserWindow(a)
+	}
 	if a.UI.MixerOpen && a.Song != nil {
 		MixerWindow(a)
+	}
+	if a.UI.PlaybackEditorOpen && a.Song != nil {
+		PlaybackEditorModal(a)
+	}
+	if a.UI.ChordExplorerOpen {
+		ChordExplorer(a)
+	}
+	if a.UI.ScaleExplorerOpen {
+		ScaleExplorer(a)
+	}
+	if a.UI.LockedChordOpen {
+		LockedChordModal(a)
+	}
+	if a.UI.ExportOpen {
+		ExportDialog(a)
+	}
+	if a.UI.FloatingKeys {
+		FloatingKeyboard(a)
 	}
 	if a.UI.Confirm != nil {
 		ConfirmDialog(a)
@@ -447,10 +522,7 @@ func Overlays(a *app.App) {
 }
 
 func Presentation(a *app.App) {
-	Container(Attrs(Expand, BackgroundVec(Col("#000000")), Pad(0)), func() {
-		if IconButton(TypArrowMinimise, "Leave presentation (F11)", true) {
-			a.UI.Presentation = false
-		}
+	Container(Attrs(FixSizeVec(GetHost().WindowSize), BackgroundVec(Col("#000000")), Pad(0)), func() {
 		PianoRoll(a)
 		min, max := KeyRange(a.Prefs.KeyRange)
 		PianoKeyboard(min, max, 190, soundingKeys(a), a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
@@ -471,7 +543,7 @@ type tempoHold struct {
 func tempoControl(a *app.App) {
 	bpm := 120.0
 	if a.Song != nil {
-		bpm = a.Song.BPMAt(a.Transport.Time) * a.Transport.Speed
+		bpm = a.Song.EffectiveBPM(a.Transport.Time) * a.Transport.Speed
 	}
 	Pill(Attrs(Gap(4)), func() {
 		Caption("BPM")

@@ -433,6 +433,7 @@ func Parse(raw []byte, path string) (*song.Song, error) {
 
 	s.SortNotes()
 	s.RebuildGrid()
+	s.TempoSuspect = s.CheckTempoTrust() < 0.35
 	applyMetaTracks(s)
 	ApplyDefaultColors(s, theory.DefaultHandLH, theory.DefaultHandRH)
 	if s.Meta.KeySemitone != nil {

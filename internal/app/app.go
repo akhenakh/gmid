@@ -5,6 +5,8 @@ import (
 
 	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/config"
+	"github.com/akhenakh/gmid/internal/library"
+	"github.com/akhenakh/gmid/internal/midiio"
 	"github.com/akhenakh/gmid/internal/song"
 )
 
@@ -16,15 +18,23 @@ type App struct {
 
 	Song *song.Song
 
-	Engine     Engine
-	LiveKeys   map[int]bool
-	Mixes      map[int]audio.ChannelMix
-	MixesDirty bool
+	Engine      Engine
+	LiveKeys    map[int]bool
+	LockedKeys  map[int]bool
+	Mixes       map[int]audio.ChannelMix
+	MixesDirty  bool
+	MIDI        *midiio.Manager
+	ExportState ExportState
+	Lib         *library.Library
 
 	focusSnapshot []focusState
 	Hits          []Hit
 	lastHitScan   float64
 	hitSeq        int
+	tapWall       []float64
+	tapSong       []float64
+	tapLast       time.Time
+	Edit          EditorState
 
 	Transport Transport
 
@@ -56,25 +66,42 @@ type UIState struct {
 	SettingsGroup string
 	SettingsQuery string
 
-	LibraryOpen        bool
-	LibraryPath        string
-	LibraryFilter      string
-	LibrarySelected    int
-	LibrarySelection   string
-	MixerOpen          bool
-	PlaybackEditorOpen bool
-	NoteEditorActive   bool
-	ChordExplorerOpen  bool
-	ScaleExplorerOpen  bool
-	LockedChordOpen    bool
-	ExportOpen         bool
-	MetronomeMenu      bool
-	Confirm            *Confirm
-	MenuAnchor         string
+	LibraryOpen         bool
+	FileBrowserOpen     bool
+	LibQuery            string
+	LibScanning         bool
+	LibraryPath         string
+	LibraryFilter       string
+	LibrarySelected     int
+	LibrarySelection    string
+	MixerOpen           bool
+	PlaybackEditorOpen  bool
+	NoteEditorActive    bool
+	ChordExplorerOpen   bool
+	ScaleExplorerOpen   bool
+	LockedChordOpen     bool
+	ExportOpen          bool
+	ExportVariant       int
+	ExportFormat        string
+	MetronomeMenu       bool
+	ExplorerKey         int
+	ExplorerChord       string
+	ExplorerInversion   int
+	ExplorerProgression int
+	ExplorerOctave      int
+	ScaleType           string
+	ScaleRoot           int
+	ScaleStarmap        bool
+	Confirm             *Confirm
+	MenuAnchor          string
 
 	Presentation bool
 	FloatingKeys bool
 	KeysDocked   bool
+	FloatX       float32
+	FloatY       float32
+	FloatW       float32
+	FloatH       float32
 
 	Toast     string
 	ToastTill time.Time
@@ -92,6 +119,7 @@ func New(prefs config.Prefs, assets, scene string) *App {
 		Prefs:  prefs,
 		Assets: assets,
 		Scene:  scene,
+		Lib:    library.New(prefs.LibraryFolder),
 		Transport: Transport{
 			Speed: 1,
 		},
@@ -101,6 +129,14 @@ func New(prefs config.Prefs, assets, scene string) *App {
 			PanelsOpen:    true,
 			KeysDocked:    true,
 			SettingsGroup: "audio",
+			ExplorerKey:   0,
+			ExplorerChord: "",
+			ScaleType:     "major",
+			ExportFormat:  "wav",
+			FloatW:        760,
+			FloatH:        230,
+			FloatX:        620,
+			FloatY:        500,
 		},
 	}
 }

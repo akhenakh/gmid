@@ -43,6 +43,51 @@ func (s *Song) RebuildGrid() {
 	}
 }
 
+// CheckTempoTrust flags songs whose notes do not line up with the file's beat
+// grid — the ones Tap Tempo can fix. Returns the fraction that aligned.
+func (s *Song) CheckTempoTrust() float64 {
+	if len(s.Beats) == 0 {
+		return 1
+	}
+	total, aligned := 0, 0
+	for i := range s.Tracks {
+		t := &s.Tracks[i]
+		if t.IsDrum || t.Excluded {
+			continue
+		}
+		for j := range t.Notes {
+			total++
+			if total > 600 {
+				break
+			}
+			at := t.Notes[j].StartSec
+			// nearest beat
+			lo, hi := 0, len(s.Beats)-1
+			for lo < hi {
+				mid := (lo + hi) / 2
+				if s.Beats[mid] < at {
+					lo = mid + 1
+				} else {
+					hi = mid
+				}
+			}
+			best := math.Abs(s.Beats[lo] - at)
+			if lo > 0 {
+				if d := math.Abs(s.Beats[lo-1] - at); d < best {
+					best = d
+				}
+			}
+			if best < 0.06 {
+				aligned++
+			}
+		}
+	}
+	if total == 0 {
+		return 1
+	}
+	return float64(aligned) / float64(total)
+}
+
 func (s *Song) sigAtTick(tick int64) (int, int) {
 	if len(s.Sigs) == 0 {
 		return 4, 4

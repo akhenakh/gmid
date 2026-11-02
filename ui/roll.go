@@ -81,53 +81,57 @@ func drawRoll(a *app.App) {
 
 	// Interaction: wheel scrubs, click seeks, Alt-drag draws a loop.
 	ProcessButtonEvents(false)
-	ld := Use[loopDrag]("loop-drag")
-	if IsHovered() {
-		rect := GetScreenRect()
-		pt := GetInputState().MousePoint
-		pct := (pt[1] - rect.Origin[1]) / rect.Size[1]
-		tAt := now + float64(float32(0.80)-pct)*visible
-		scroll := GetFrameInput().Scroll[1]
-		if scroll != 0 {
-			step := 2.0
-			if GetInputState().Modifiers&ModShift != 0 {
-				step = 0.15
-			}
-			a.Seek(now - float64(scroll)*step)
-		}
-		if GetFrameInput().Mouse == MouseClick {
-			if GetFrameInput().ClickCount >= 2 {
-				a.Transport.LoopEnabled = false
-				a.Transport.LoopActive = false
-				if a.Engine != nil {
-					a.Engine.SetLoop(false, 0, 0)
+	if a.Edit.Active {
+		editorInteraction(a, layout, min, max, now, visible, playY, pxPerSec, IsActive())
+	} else {
+		ld := Use[loopDrag]("loop-drag")
+		if IsHovered() {
+			rect := GetScreenRect()
+			pt := GetInputState().MousePoint
+			pct := (pt[1] - rect.Origin[1]) / rect.Size[1]
+			tAt := now + float64(float32(0.80)-pct)*visible
+			scroll := GetFrameInput().Scroll[1]
+			if scroll != 0 {
+				step := 2.0
+				if GetInputState().Modifiers&ModShift != 0 {
+					step = 0.15
 				}
-			} else if GetInputState().Modifiers&ModAlt != 0 {
-				ld.active = true
-				ld.anchor = tAt
-				a.Transport.LoopStart, a.Transport.LoopEnd = tAt, tAt
+				a.Seek(now - float64(scroll)*step)
+			}
+			if GetFrameInput().Mouse == MouseClick {
+				if GetFrameInput().ClickCount >= 2 {
+					a.Transport.LoopEnabled = false
+					a.Transport.LoopActive = false
+					if a.Engine != nil {
+						a.Engine.SetLoop(false, 0, 0)
+					}
+				} else if GetInputState().Modifiers&ModAlt != 0 {
+					ld.active = true
+					ld.anchor = tAt
+					a.Transport.LoopStart, a.Transport.LoopEnd = tAt, tAt
+					a.Transport.LoopEnabled = true
+				} else {
+					a.Seek(tAt)
+				}
+			}
+			if ld.active && IsActive() {
+				lo, hi := ld.anchor, tAt
+				if lo > hi {
+					lo, hi = hi, lo
+				}
+				a.Transport.LoopStart, a.Transport.LoopEnd = lo, hi
 				a.Transport.LoopEnabled = true
-			} else {
-				a.Seek(tAt)
-			}
-		}
-		if ld.active && IsActive() {
-			lo, hi := ld.anchor, tAt
-			if lo > hi {
-				lo, hi = hi, lo
-			}
-			a.Transport.LoopStart, a.Transport.LoopEnd = lo, hi
-			a.Transport.LoopEnabled = true
-			if a.Engine != nil {
-				a.Engine.SetLoop(true, lo, hi)
-			}
-		}
-		if ld.active && !IsActive() {
-			ld.active = false
-			if a.Transport.LoopEnd-a.Transport.LoopStart < 0.05 {
-				a.Transport.LoopEnabled = false
 				if a.Engine != nil {
-					a.Engine.SetLoop(false, 0, 0)
+					a.Engine.SetLoop(true, lo, hi)
+				}
+			}
+			if ld.active && !IsActive() {
+				ld.active = false
+				if a.Transport.LoopEnd-a.Transport.LoopStart < 0.05 {
+					a.Transport.LoopEnabled = false
+					if a.Engine != nil {
+						a.Engine.SetLoop(false, 0, 0)
+					}
 				}
 			}
 		}
@@ -210,14 +214,39 @@ func drawRoll(a *app.App) {
 				col = handColor(a, n.Hand)
 			}
 			a4 := 0.55 + float32(n.Velocity)/127*0.4
+			sel := a.Edit.Active && a.Edit.Selected[n.ID]
+			bw := float32(1)
+			bc := Alpha(Shade(col, 12), .8)
+			if sel {
+				bw = 2
+				bc = ColWhite
+			}
 			Container(Attrs(Float(k.X+0.5, top), FixSize(k.W-1, hh), NoAnimate,
 				BackgroundVec(Alpha(col, a4)), Corners(3),
-				BorderWidth(1), BorderColorVec(Alpha(Shade(col, 12), .8))), func() {
+				BorderWidth(bw), BorderColorVec(bc)), func() {
 				if k.W > 26 && hh > 24 {
 					Label(NoteName(key, a.Prefs.NoteNaming, a.Prefs.Accidentals),
 						FontSize(9), TextColorVec(Alpha(ColWhite, .7)))
 				}
 			})
+		}
+	}
+
+	// Note Editor marquee.
+	if a.Edit.Active {
+		d := Use[editDrag]("note-edit-drag")
+		if d.mode == "marquee" {
+			x0, x1 := d.anchorX, d.curX
+			if x0 > x1 {
+				x0, x1 = x1, x0
+			}
+			y0, y1 := d.anchorY, d.curY
+			if y0 > y1 {
+				y0, y1 = y1, y0
+			}
+			Container(Attrs(Float(x0, y0), FixSize(maxf(x1-x0, 1), maxf(y1-y0, 1)),
+				NoAnimate, BackgroundVec(Alpha(ColBlue, .12)),
+				BorderWidth(1), BorderColorVec(Alpha(ColBlue, .8))), func() {})
 		}
 	}
 
@@ -229,7 +258,7 @@ func drawRoll(a *app.App) {
 	// Playhead and the played area below it.
 	Element(Attrs(Float(0, playY), FixSize(w, h-playY), NoAnimate,
 		BackgroundVec(Alpha(ColBlack, .28))))
-	Element(Attrs(Float(0, playY-1), FixSize(w, 2), NoAnimate,
+	Element(Attrs(Float(26, playY-1), FixSize(w-26, 2), NoAnimate,
 		BackgroundVec(Alpha(ColAmber, .9))))
 	Pill(Attrs(Float(w-96, playY-20), NoAnimate, BackgroundVec(Alpha(ColPanel2, .95)),
 		BorderColorVec(Alpha(ColAmber, .6))), func() {

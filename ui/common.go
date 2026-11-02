@@ -97,6 +97,21 @@ func CompactSegmented[T comparable](target *T, body func()) bool {
 	}, body)
 }
 
+// minF and maxF keep float64 preference math readable.
+func minF(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxF(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // FlexSpacer pushes siblings apart along the main axis.
 func FlexSpacer() {
 	Element(Attrs(Grow(1), MinSize(0, 0)))

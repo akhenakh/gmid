@@ -43,6 +43,7 @@ func TestParseDemo(t *testing.T) {
 	if s.Identity == "" {
 		t.Fatal("no identity")
 	}
+	t.Logf("trust=%.2f suspect=%v", s.CheckTempoTrust(), s.TempoSuspect)
 }
 
 func TestWriteRoundTrip(t *testing.T) {
