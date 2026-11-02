@@ -72,6 +72,20 @@ func SettingsWindow(a *app.App) {
 						a.SetSoundEngine(a.Prefs.SoundEngine)
 					}
 				})
+				if info, ok := a.DecentStatus(); ok {
+					Container(Attrs(Pad2(6, 2)), func() {
+						Caption(fmt.Sprintf("DecentSampler active: %s replaces this engine for melodic tracks. Unload it below to hear GM, Studio or Native.", info.Name))
+					})
+				}
+				SettingRow("Studio soundfont", "SF2 for Studio/Native; empty uses the GM bank.", func() {
+					Container(Attrs(FixWidth(300)), func() {
+						TextInput(&a.Prefs.SoundFont)
+					})
+					if CtrlButton(NoIcon, "Apply", true) {
+						a.SavePrefs()
+						a.SetSoundEngine(a.Prefs.SoundEngine)
+					}
+				})
 				SettingRow("Native output", "Exclusive is shortest; Shared lets other apps play.", func() {
 					v := a.Prefs.ShareMode == "exclusive"
 					ToggleSwitch(&v)

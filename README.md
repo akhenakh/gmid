@@ -22,6 +22,12 @@ keep the soundfont. Libraries are level-matched at load (with a per-instrument
 gain in Settings → Audio), the demo piano lives in `assets/decent/`, and the
 `gmid_decent` MCP tool loads, unloads and inspects instruments.
 
+A loaded DecentSampler instrument replaces the melodic synth for every
+non-drum track, so the GM/Studio/Native engine only affects drums until it is
+unloaded. GM uses the bundled General User GS; Studio and Native load the SF2
+set in Settings → Audio (the GM bank until one is chosen). Native differs by
+its exclusive low-latency output, not by its bank.
+
 Known gaps: Guitar Pro and Capella import use the local `mscore` command when
 available (not bundled); OS-level fullscreen and multi-window; per-channel VU
 meters are shared with the master peak; Starmap is a static chord-star view.

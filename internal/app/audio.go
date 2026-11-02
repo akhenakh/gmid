@@ -37,6 +37,11 @@ func (a *App) SetSoundEngine(kind string) {
 	}
 	a.Prefs.SoundEngine = kind
 	_ = a.Prefs.Save()
+	if a.Prefs.DecentPreset != "" {
+		a.Notify("DecentSampler is loaded and overrides melodic tracks — unload it to hear this engine")
+	} else if (kind == "studio" || kind == "native") && a.Prefs.SoundFont == "" {
+		a.Notify("Studio and Native use the GM bank until a Studio soundfont is set")
+	}
 	if a.Engine == nil {
 		return
 	}

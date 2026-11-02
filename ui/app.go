@@ -334,7 +334,11 @@ func LeftPanel(a *app.App) {
 			SectionTitle("Sound")
 			Container(Attrs(Gap(3), Pad2(6, 2)), func() {
 				Label("Engine", FontSize(12), TextColorVec(ColText))
-				Caption("GM is instant; Studio and Native use soundfonts.")
+				hint := "GM is instant; Studio and Native use soundfonts."
+				if info, ok := a.DecentStatus(); ok {
+					hint = "DecentSampler (" + info.Name + ") overrides melodic tracks."
+				}
+				Caption(hint)
 				if CompactSegmented(&a.Prefs.SoundEngine, func() {
 					SegmentedCell("GM", "gm")
 					SegmentedCell("Studio", "studio")
