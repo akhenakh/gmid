@@ -1,0 +1,22 @@
+# Reference clone and bundled docs are not part of this repository.
+/Orfeo/
+/shirei.md
+
+# Build output and generated artifacts
+/build/
+/bin/
+*.test
+*.out
+*.prof
+
+# Fetched binary assets (see `make assets`)
+/assets/soundfonts/*.sf2
+/assets/soundfonts/*.sf3
+
+# Local audio exports
+*.wav
+*.mp3
+
+# Editor/OS noise
+.DS_Store
+*.swp

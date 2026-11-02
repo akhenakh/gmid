@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.x"
+          cache: true
+      - name: System dependencies (ALSA for cgo)
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  headless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.x"
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Render the shell
+        run: go run ./cmd/gmid -png build/visual/shell.png -scene=shell
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shell-screenshot
+          path: build/visual/shell.png

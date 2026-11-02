@@ -1,0 +1,8 @@
+version: "2"
+
+linters:
+  exclusions:
+    rules:
+      # Shirei's documented API idiom is dot-importing the UI packages.
+      - linters: [staticcheck]
+        text: "ST1001"
