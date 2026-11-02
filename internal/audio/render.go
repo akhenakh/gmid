@@ -7,7 +7,7 @@ import (
 // renderLocked fills the stereo block. The engine mutex is held by the caller.
 func (e *Engine) renderLocked(l, r []float32) {
 	if !e.playing || e.timeline == nil {
-		e.peak *= 0.85
+		e.renderLiveLocked(l, r)
 		return
 	}
 	if e.countInActive {
@@ -51,6 +51,63 @@ func (e *Engine) renderLocked(l, r []float32) {
 		}
 		if b > peak {
 			peak = b
+		}
+	}
+	if peak > e.peak {
+		e.peak = peak
+	} else {
+		e.peak = e.peak*0.9 + peak*0.1
+	}
+}
+
+// renderLiveLocked renders held live notes while the transport is stopped or
+// paused. The song timeline is not scheduled, so only voices started by the
+// keyboard (or MIDI input) sound.
+func (e *Engine) renderLiveLocked(l, r []float32) {
+	n := len(l)
+	if len(e.tmpL) < n {
+		e.tmpL = make([]float32, n)
+		e.tmpR = make([]float32, n)
+	}
+	if len(e.smpL) < n {
+		e.smpL = make([]float32, n)
+		e.smpR = make([]float32, n)
+	}
+	tl := e.tmpL[:n]
+	tr := e.tmpR[:n]
+	for i := range tl {
+		tl[i], tr[i] = 0, 0
+	}
+	if e.synth != nil {
+		e.synth.Render(tl, tr)
+	}
+	if e.decent != nil {
+		sl := e.smpL[:n]
+		sr := e.smpR[:n]
+		for i := range sl {
+			sl[i], sr[i] = 0, 0
+		}
+		e.decent.Render(sl, sr)
+		for i := range tl {
+			tl[i] += sl[i]
+			tr[i] += sr[i]
+		}
+	}
+	gain := float32(e.masterVol)
+	for i := range l {
+		l[i] = tl[i] * gain
+		r[i] = tr[i] * gain
+	}
+	if e.compressor || e.masterTone != 0.5 {
+		e.processMasterLocked(l, r)
+	}
+	peak := 0.0
+	for i := range l {
+		if a := math.Abs(float64(l[i])); a > peak {
+			peak = a
+		}
+		if a := math.Abs(float64(r[i])); a > peak {
+			peak = a
 		}
 	}
 	if peak > e.peak {
