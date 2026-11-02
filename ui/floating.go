@@ -38,7 +38,7 @@ func FloatingKeyboard(a *app.App) {
 			}
 		})
 		Container(Attrs(Expand, Clip, Pad2(0, 2), BackgroundVec(Col("#08080b"))), func() {
-			min, max := KeyRange(a.Prefs.KeyRange)
+			min, max := EffectiveKeyRange(a)
 			PianoKeyboard(min, max, maxf(h-32, 80), soundingKeys(a),
 				a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
 			// Resize handle.

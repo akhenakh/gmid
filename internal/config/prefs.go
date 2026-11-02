@@ -64,6 +64,7 @@ type Prefs struct {
 	ChordTracking    string  `json:"chordTracking"` // auto | harmony | instrument
 	ChordReading     string  `json:"chordReading"`  // simple | full
 	KeyRange         int     `json:"keyRange"`      // 61 | 73 | 88
+	FitSongRange     bool    `json:"fitSongRange"`  // trim the keyboard to the song's pitches
 	ShowOctaves      bool    `json:"showOctaves"`
 	ShowNoteNames    bool    `json:"showNoteNames"`
 	ReflectPianoRoll bool    `json:"reflectPianoRoll"`
@@ -141,6 +142,7 @@ func Defaults() Prefs {
 		ChordTracking:      "auto",
 		ChordReading:       "simple",
 		KeyRange:           88,
+		FitSongRange:       true,
 		ShowOctaves:        true,
 		ShowNoteNames:      true,
 		ReflectPianoRoll:   true,

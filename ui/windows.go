@@ -304,6 +304,10 @@ func SettingsWindow(a *app.App) {
 						SegmentedCell("88", 88)
 					})
 				})
+				SettingRow("Fit range to song", "Show only the pitches the song uses.", func() {
+					ToggleSwitch(&a.Prefs.FitSongRange)
+					a.SavePrefs()
+				})
 				SettingRow("Note names", "Names on the keyboard keys.", func() {
 					ToggleSwitch(&a.Prefs.ShowNoteNames)
 					a.SavePrefs()

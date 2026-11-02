@@ -19,7 +19,7 @@ func VelocityLane(a *app.App) {
 		if t == nil || w <= 0 {
 			return
 		}
-		min, max := KeyRange(a.Prefs.KeyRange)
+		min, max := EffectiveKeyRange(a)
 		layout := BuildKeyLayout(w, min, max)
 		now := a.Transport.Time
 		visible := 6.0 / a.Prefs.RollZoom

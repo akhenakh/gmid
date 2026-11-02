@@ -61,15 +61,42 @@ func (a *App) loadSMF(path string) error {
 	return nil
 }
 
+// computeSongRange caches the pitch extent of the loaded song.
+func (a *App) computeSongRange() {
+	a.SongMinKey, a.SongMaxKey = 0, 0
+	if a.Song == nil {
+		return
+	}
+	lo, hi := 128, -1
+	for _, t := range a.Song.Tracks {
+		if t.IsDrum {
+			continue
+		}
+		for _, n := range t.Notes {
+			if n.Key < lo {
+				lo = n.Key
+			}
+			if n.Key > hi {
+				hi = n.Key
+			}
+		}
+	}
+	if hi >= lo {
+		a.SongMinKey, a.SongMaxKey = lo, hi
+	}
+}
+
 // InstallSong makes a parsed song current, applying user preferences that do not
 // belong in the parser.
 func (a *App) InstallSong(s *song.Song) {
 	if s == nil {
 		a.Song = nil
+		a.SongMinKey, a.SongMaxKey = 0, 0
 		a.Notify("Closed song")
 		return
 	}
 	a.Song = s
+	a.computeSongRange()
 	if a.Prefs.SkipEmptyBars {
 		s.ApplyLeadCut(a.Prefs.KeepDrumCountIn)
 	}

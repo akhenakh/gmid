@@ -215,7 +215,7 @@ func MainColumn(a *app.App) {
 			bed := Container(Attrs(ExpandAcross(), Corners(8), Clip, Pad2(0, 1),
 				BackgroundVec(Col("#08080b")), BorderWidth(1),
 				BorderColorVec(Alpha(ColBorder, .6))), func() {
-				min, max := KeyRange(a.Prefs.KeyRange)
+				min, max := EffectiveKeyRange(a)
 				PianoKeyboard(min, max, keyboardHeight, soundingKeys(a),
 					a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
 			})
@@ -307,7 +307,11 @@ func KeyboardBar(a *app.App) {
 		}
 		FlexSpacer()
 		if a.Song != nil {
-			Caption(fmt.Sprintf("%d keys", a.Prefs.KeyRange))
+			if a.Prefs.FitSongRange {
+				Caption("fitted to song")
+			} else {
+				Caption(fmt.Sprintf("%d keys", a.Prefs.KeyRange))
+			}
 		}
 	})
 }
@@ -541,7 +545,7 @@ func Overlays(a *app.App) {
 func Presentation(a *app.App) {
 	Container(Attrs(FixSizeVec(GetHost().WindowSize), BackgroundVec(Col("#000000")), Pad(0)), func() {
 		PianoRoll(a)
-		min, max := KeyRange(a.Prefs.KeyRange)
+		min, max := EffectiveKeyRange(a)
 		PianoKeyboard(min, max, 190, soundingKeys(a), a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
 		win := GetHost().WindowSize
 		Container(Attrs(Float(maxf(win[0]-180, 8), 12), Z(120), NoAnimate,

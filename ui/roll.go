@@ -68,7 +68,7 @@ func drawRoll(a *app.App) {
 	if w <= 0 || h <= 0 {
 		return
 	}
-	min, max := KeyRange(a.Prefs.KeyRange)
+	min, max := EffectiveKeyRange(a)
 	layout := BuildKeyLayout(w, min, max)
 	now := a.Transport.Time
 	visible := 6.0 / a.Prefs.RollZoom

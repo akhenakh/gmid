@@ -3,7 +3,35 @@ package ui
 import (
 	. "go.hasen.dev/shirei"
 	. "go.hasen.dev/shirei/widgets"
+
+	"github.com/akhenakh/gmid/internal/app"
 )
+
+// EffectiveKeyRange returns the keyboard/roll range for the loaded song. With
+// FitSongRange on it trims to the pitches the song uses (plus context), never
+// beyond the configured 61/73/88-key span, so notes use the available width
+// instead of clustering around the middle of a full 88-key keyboard.
+func EffectiveKeyRange(a *app.App) (int, int) {
+	baseMin, baseMax := KeyRange(a.Prefs.KeyRange)
+	if !a.Prefs.FitSongRange || a.Song == nil || a.SongMaxKey <= 0 {
+		return baseMin, baseMax
+	}
+	lo, hi := a.SongMinKey+a.Transport.Transpose-2, a.SongMaxKey+a.Transport.Transpose+2
+	if hi-lo < 24 {
+		mid := (lo + hi) / 2
+		lo, hi = mid-12, mid+12
+	}
+	if lo < baseMin {
+		lo = baseMin
+	}
+	if hi > baseMax {
+		hi = baseMax
+	}
+	if hi <= lo {
+		return baseMin, baseMax
+	}
+	return lo, hi
+}
 
 // KeyRange returns the MIDI range for a 61/73/88-key keyboard.
 func KeyRange(size int) (min, max int) {

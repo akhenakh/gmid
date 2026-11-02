@@ -18,6 +18,10 @@ type App struct {
 
 	Song *song.Song
 
+	// Pitch extent of the loaded song, used to fit the roll and keyboard.
+	SongMinKey int
+	SongMaxKey int
+
 	Engine      Engine
 	LiveKeys    map[int]bool
 	LockedKeys  map[int]bool
