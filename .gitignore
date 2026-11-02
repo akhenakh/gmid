@@ -17,6 +17,18 @@
 *.wav
 *.mp3
 
+# Video project: keep the timeline and drivers, not recordings/renders
+/gmid-video/assets/*/clip.mkv
+/gmid-video/assets/*/takes/
+/gmid-video/assets/*/logs/
+/gmid-video/assets/*/chrome-profile/
+/gmid-video/assets/*/slide.html
+/gmid-video/assets/*/state.yaml
+/gmid-video/assets/*/terminal.txt
+/gmid-video/assets/*/meta.yaml
+/gmid-video/render/
+/gmid-video/voice/
+
 # Editor/OS noise
 .DS_Store
 *.swp

@@ -1,0 +1,255 @@
+version: 1
+title: gmid — MIDI becomes a piano lesson
+canvas: {size: 1080p, fps: 30}
+voice:
+  engine: audiocpp
+  model: breeze-tts-2
+  instruct: "A warm, clear adult voice with calm pacing, speaking like a musician showing a new instrument. Natural English, unhurried, a little delighted."
+  guidance_scale: 6
+  design_once: true
+  speed: 1.0
+  gain: 2
+  seed: 21
+transition: {type: cross-dissolve, duration: 450ms}
+
+
+scenes:
+  - id: intro
+    title: gmid
+    transition: {type: fade-black, duration: 700ms}
+    source:
+      text:
+        items:
+          - {at: 0, kind: title, text: "gmid", glow: true}
+          - {at: 0.7, kind: text, text: "MIDI becomes a piano lesson — written in Go."}
+          - {at: 1.3, kind: note, text: "Piano roll · keyboard · mixer · editors · explorers · MCP", animation: fade-up}
+    duration: voice
+    pad: 1s
+    narration: >-
+      This is Jee-mid: a desktop piano-learning app written in Go, from the window
+      toolkit to the sampler. It opens a MIDI file, turns it into a falling-note
+      piano roll, and gives you a keyboard, a mixer, editors, chord and scale
+      explorers, and an MCP server that lets an AI drive the whole thing. Let me
+      show you what it does.
+
+  - id: roll
+    title: The falling-note roll
+    transition: {type: wipe-left, duration: 600ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/roll.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      The piano roll is the centre of Jee-mid. Notes fall toward the keyboard,
+      coloured per track and aligned to the keys, with bar lines, a loop region,
+      and hit effects where a note lands. Here is Vivaldi's Summer. Playback is
+      sample-accurate, and the clock can slow down without changing pitch. We
+      can transpose the whole piece by a couple of semitones, draw a loop
+      directly on the waterfall, and keep drilling the same four bars. The
+      floating keyboard follows the same key geometry, so every note lines up.
+
+  - id: mixer
+    title: Tracks and the console mixer
+    transition: {type: push-up, duration: 600ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/mixer.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      Every MIDI track becomes a strip in the console mixer: volume, pan,
+      chorus, reverb, and live level meters. Mute and solo work the way you
+      expect, and hiding a track is separate from muting it: the part still
+      plays as accompaniment, but disappears from the roll and the keys. Focus
+      mode is the one-click version — hear keys, bass and drums, see only the
+      keys — and a second click puts every track back exactly as it was. The mix
+      is baked into a new version of the file when the console closes.
+
+  - id: library
+    title: The library
+    transition: {type: cross-dissolve, duration: 450ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/library.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      The library scans a folder of MIDI, MusicXML, Guitar Pro and karaoke
+      files. Search is fuzzy, stars are remembered, and the demo songs ship with
+      the app. Opening a song loads it into the same roll. All the everyday
+      settings live in the left panel, and the full Settings window has nine
+      groups with a search box and a one-line explanation for every switch.
+
+  - id: explorers
+    title: Chords and scales
+    transition: {type: wipe-right, duration: 600ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/explorers.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      The Chord Explorer browses any chord in any key, filters by hand span,
+      cycles inversions, and plays progressions in nine styles. The Scale
+      Explorer is an interactive circle of fifths: pick a key, choose one of ten
+      scales, and every diatonic chord appears with its Roman numeral. Chords
+      can be auditioned on the instrument, and the metronome follows the file's
+      own tempo map, including mid-song tempo changes. Count-in gives you one to
+      four bars before the music starts.
+
+  - id: editor
+    title: Editing notes
+    transition: {type: cross-dissolve, duration: 450ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/editor.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      The Note Editor works directly on the roll. Select a note, move it,
+      resize it, add notes with the pen, or drag a selection with the marquee.
+      The velocity lane sits under the roll: drag a bar to change how hard a
+      note is played. Every edit is undoable, and saving writes a new versioned
+      file — the original is never touched. The Playback Editor handles whole
+      tracks: exclude, rename, recolour, reassign the instrument, merge, or
+      split a piano part into left and right hands.
+
+  - id: decent
+    title: DecentSampler instruments
+    transition: {type: zoom-in, duration: 500ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/decent.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      Jee-mid also plays DecentSampler instruments. Load a dspreset or a
+      dslibrary, and melodic tracks go through its sample zones: velocity
+      layers, round robins, key ranges, loops, envelopes and filters. Drums keep
+      using the soundfont, so a mixed arrangement still works. The demo piano
+      you hear in this scene is a small instrument built for the project. The
+      instrument path is remembered, and the same engine is used for live
+      keyboard playing and for offline export.
+
+  - id: export
+    title: Export and chord charts
+    transition: {type: wipe-left, duration: 600ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/export.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      Export can render the song as a WAV at CD quality or as a 320 kilobit MP3.
+      There are three versions: exactly as written, keys plus bass and drums,
+      or exactly as you hear it now, with the current tempo, key, mutes, mixer
+      and loop. The same menu creates a printable chord chart as a PDF, with
+      bar numbers and the detected harmony. Export runs in the background, so
+      the app stays usable.
+
+  - id: presentation
+    title: Presentation and floating keys
+    transition: {type: cross-dissolve, duration: 450ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/present.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      Presentation mode strips the window down to the roll and the keyboard.
+      The floating keyboard is a draggable, resizable panel for a second screen
+      or a multi-window setup. The chord prompter above the keys reads the past,
+      current and next chord while the song plays. If the song's bar lines do not
+      match the music, Tap Tempo lets you tap the beat; Jee-mid snaps the grid to
+      the drums and bass, remembers the correction for that file, and never
+      changes the MIDI itself.
+
+  - id: practice
+    title: Practice tools
+    transition: {type: wipe-left, duration: 600ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/practice.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      Step Through walks a song one note or chord at a time. Each press pauses,
+      plays the next moment, lights the keys and moves the playhead; Shift jumps
+      a whole bar. Hand assignment colours piano notes by the hand that plays
+      them, with optional L and R badges on the keys. Lock a chord by
+      Shift-clicking three or more keys, then cycle its inversions. The goal is
+      practice, not scoring: no streaks, no account, no telemetry.
+
+  - id: mcp
+    title: Driving gmid with MCP
+    transition: {type: cross-dissolve, duration: 450ms}
+    source:
+      terminal:
+        shell: bash
+        font_family: JetBrains Mono
+        font_size: 26
+        key_delay: 20ms
+        cwd: /home/akh/dev/gmid
+        inputs:
+          - ["sed -n '30,36p' docs/MCP.md", 0.3]
+          - [{key: Enter}, 2.0]
+          - ["sed -n '40,55p' docs/MCP.md", 4.0]
+          - [{key: Enter}, 6.0]
+    duration: 30s
+    narration: >-
+      The whole app is also an MCP server. It listens on localhost and exposes
+      tools for transport, tracks, mixer, notes, library, harmony, export,
+      settings and screenshots. An LLM can open a song, seek, change tempo, mute
+      a track, add a note, audition a chord, or render a file. The same server
+      drove the scenes in this video. It takes Shirei's frame lock, so tool calls
+      never race the render loop.
+
+  - id: architecture
+    title: Architecture
+    transition: {type: push-up, duration: 600ms}
+    source:
+      text:
+        items:
+          - {at: 0, kind: title, text: "Go all the way down", animation: fade-right}
+          - {at: 0.4, kind: text, text: "**Shirei** for the UI; custom piano, roll and panels.", animation: fade-right}
+          - {at: 0.8, kind: text, text: "**gomidi / rtmidi** for files and hardware keys.", animation: fade-right}
+          - {at: 1.2, kind: text, text: "**meltysynth + malgo** for GM, Studio and Native.", animation: fade-right}
+          - {at: 1.6, kind: text, text: "**DecentSampler** instrument loader, in pure Go.", animation: fade-right}
+          - {at: 2.0, kind: note, text: "No Electron, no browser engine, no JavaScript."}
+    duration: voice
+    pad: 1s
+    narration: >-
+      Under the surface it is Go all the way down. Shirei draws the UI, with
+      custom widgets for the piano, the waterfall and the panels. gomidi reads
+      and writes MIDI files, and rtmidi brings in a hardware keyboard. Audio is
+      go-meltysynth through malgo, with a shared or exclusive output path. The
+      DecentSampler loader is pure Go too, reading dspreset XML and WAV, AIFF or
+      FLAC samples. One process, one binary, no browser engine.
+
+  - id: outro
+    title: Outro
+    transition: {type: fade-black, duration: 800ms}
+    source:
+      text:
+        items:
+          - {at: 0, kind: title, text: "gmid", glow: true}
+          - {at: 0.6, kind: text, text: "github.com/akhenakh/gmid", animation: fade-up}
+          - {at: 1.2, kind: text, text: "GPL-3.0 · MCP on 127.0.0.1:8765", animation: fade-up}
+          - {at: 1.8, kind: note, text: "Play. Edit. Explore. Or let an agent drive."}
+    duration: voice
+    pad: 1.5s
+    narration: >-
+      Jee-mid is free and open source under the GPL. The source, the demo
+      instrument and the MCP server are in the repository. Play a song, edit a
+      note, explore a key, or let an agent drive it over MCP. Thanks for
+      watching.
