@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"unsafe"
 
 	"github.com/gen2brain/malgo"
@@ -106,11 +107,22 @@ func (e *Engine) StartOutput(deviceName, backend string, exclusive bool, frames 
 	if deviceName != "" {
 		infos, derr := ctx.Devices(malgo.Playback)
 		if derr == nil {
+			// The device ID lives in C memory conceptually: cgo rejects a Go
+			// pointer inside the config unless it points to pinned Go memory.
+			id := new(malgo.DeviceID)
+			found := false
 			for i := range infos {
 				if infos[i].Name() == deviceName {
-					cfg.Playback.DeviceID = unsafe.Pointer(&infos[i].ID)
+					*id = infos[i].ID
+					found = true
 					break
 				}
+			}
+			if found {
+				var pinner runtime.Pinner
+				pinner.Pin(id)
+				defer pinner.Unpin()
+				cfg.Playback.DeviceID = unsafe.Pointer(id)
 			}
 		}
 	}
