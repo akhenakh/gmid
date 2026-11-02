@@ -58,6 +58,12 @@ type loopDrag struct {
 	active bool
 }
 
+// rollWindow returns the time range the roll draws: the playhead sits at 80%
+// height, so most of the surface shows upcoming notes.
+func rollWindow(now, visible float64) (lo, hi float64) {
+	return now - visible*0.2 - 1, now + visible*0.8 + 1
+}
+
 func drawRoll(a *app.App) {
 	w := GetContentWidth()
 	h := GetContentHeight()
@@ -184,9 +190,9 @@ func drawRoll(a *app.App) {
 		}
 	}
 
-	// Notes, culled to the visible time window.
-	lo := now - visible*0.8 - 1
-	hi := now + visible*0.2 + 1
+	// Notes, culled to the visible time window. The playhead sits at 80% of the
+	// roll height: 80% of the window is the future (above it), 20% is the past.
+	lo, hi := rollWindow(now, visible)
 	for ti := range a.Song.Tracks {
 		t := &a.Song.Tracks[ti]
 		if !a.Song.IsShown(t) {

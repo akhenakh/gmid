@@ -23,7 +23,7 @@ func VelocityLane(a *app.App) {
 		layout := BuildKeyLayout(w, min, max)
 		now := a.Transport.Time
 		visible := 6.0 / a.Prefs.RollZoom
-		lo, hi := now-visible*0.8, now+visible*0.2
+		lo, hi := rollWindow(now, visible)
 
 		ProcessButtonEvents(false)
 		if IsActive() {
