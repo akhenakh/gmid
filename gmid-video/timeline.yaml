@@ -130,13 +130,22 @@ scenes:
     duration: voice
     pad: 1s
     narration: >-
-      Jee-mid also plays DecentSampler instruments. Load a dspreset or a
+      Jee-mid has a DecentSampler engine onboard. Load a dspreset or a
       dslibrary, and melodic tracks go through its sample zones: velocity
-      layers, round robins, key ranges, loops, envelopes and filters. Drums keep
-      using the soundfont, so a mixed arrangement still works. The demo piano
-      you hear in this scene is a small instrument built for the project. The
-      instrument path is remembered, and the same engine is used for live
-      keyboard playing and for offline export.
+      layers, round robins, key ranges, loops, envelopes and the preset effect
+      chain. Drums keep using the soundfont, so a mixed arrangement still
+      works. The demo piano is a small instrument built for the project, and
+      the same engine is used for live keyboard playing and offline export.
+      I will stop talking now and let you hear it.
+
+  - id: decent-play
+    title: DecentSampler — demo piano
+    transition: {type: cross-dissolve, duration: 600ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/decent-play.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: 34s
 
   - id: export
     title: Export and chord charts
