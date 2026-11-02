@@ -195,13 +195,10 @@ func PianoKeyboard(min, max int, height float32, active map[int]KeyState,
 						}
 					}
 					Container(Attrs(FixSize(k.W-1, 20), Float(0, h-19),
-						MainAlign(AlignMiddle), CrossAlign(AlignEnd), Pad(4)), func() {
-						name := KeyLabel(m, showNames, showOctaves)
-						if k.W < 14 {
-							name = KeyLabel(m, false, showOctaves)
-						}
+						MainAlign(AlignMiddle), CrossAlign(AlignEnd), Pad2(0, 1)), func() {
+						name, fs := fitKeyLabel(m, k.W, showNames, showOctaves)
 						if name != "" {
-							Label(name, FontSize(9), TextColorVec(labelCol))
+							Label(name, FontSize(fs), TextColorVec(labelCol))
 						}
 					})
 				}
@@ -264,6 +261,35 @@ func KeyLabel(midi int, names, octaves bool) string {
 		return name + itoa(midi/12-1)
 	}
 	return name
+}
+
+// fitKeyLabel returns the key label and a font size that keeps the whole token
+// on one line. Shirei soft-wraps text at the container width, which split
+// "E6" into "E" and "6" on narrow keys. If even a minimum font cannot fit a
+// name, fall back to the octave digit on C keys (and hide it on tiny keys).
+func fitKeyLabel(midi int, keyWidth float32, names, octaves bool) (string, float32) {
+	name := KeyLabel(midi, names, octaves)
+	fs := float32(9)
+	if name != "" && keyWidth > 2 {
+		// Inter is wider for some letters (C, G) than others; use a slightly
+		// different per-rune budget for accidentals so nothing soft-wraps.
+		per := float32(0.75)
+		if len(name) >= 3 {
+			per = 0.66
+		}
+		fit := (keyWidth - 3) / (per * float32(len(name)))
+		if fit < fs {
+			fs = fit
+		}
+	}
+	if fs < 6 {
+		name = KeyLabel(midi, false, octaves)
+		fs = 9
+		if keyWidth < 11 {
+			name = ""
+		}
+	}
+	return name, fs
 }
 
 func itoa(v int) string {
