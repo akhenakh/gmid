@@ -31,7 +31,7 @@ func HandleShortcuts(a *app.App) {
 		case a.UI.LibraryOpen:
 			a.UI.LibraryOpen = false
 		case a.UI.MixerOpen:
-			a.UI.MixerOpen = false
+			a.CloseMixer()
 		default:
 			a.Stop()
 		}
@@ -48,6 +48,10 @@ func HandleShortcuts(a *app.App) {
 	case c.Key == KeyP && c.Mod&primary != 0:
 		a.UI.SettingsOpen = !a.UI.SettingsOpen
 	case c.Key == KeyM && c.Mod&primary != 0 && c.Mod&ModShift != 0:
-		a.UI.MixerOpen = !a.UI.MixerOpen
+		if a.UI.MixerOpen {
+			a.CloseMixer()
+		} else {
+			a.UI.MixerOpen = true
+		}
 	}
 }

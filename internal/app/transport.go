@@ -3,7 +3,9 @@ package app
 import (
 	"sort"
 
+	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/song"
+	"github.com/akhenakh/gmid/internal/theory"
 
 	shirei "go.hasen.dev/shirei"
 )
@@ -11,6 +13,7 @@ import (
 // Engine is the playback contract the app drives. The realtime and offline
 // engines both implement it.
 type Engine interface {
+	Load(s *song.Song)
 	Play(from float64)
 	Pause()
 	Stop()
@@ -19,11 +22,13 @@ type Engine interface {
 	SetTranspose(int)
 	SetLoop(enabled bool, start, end float64)
 	SetMetronome(on bool, volume float64)
+	SetCountIn(bars int)
 	SetMasterVolume(float64)
 	SetTrackAudible(track int, audible bool)
 	SetChannelMix(ch int, volume, pan, chorus, reverb float64)
 	NoteOn(ch, key, vel int)
 	NoteOff(ch, key int)
+	Snapshot() audio.Snapshot
 	Close()
 }
 
@@ -150,10 +155,16 @@ func (a *App) SetTranspose(n int) {
 	shirei.RequestNextFrame()
 }
 
+// Sounding is one note sounding under the playhead.
+type Sounding struct {
+	Track *song.Track
+	Note  *song.Note
+}
+
 // SoundingNotes returns the transposed notes sounding at the playhead across
 // shown, keyboard-enabled tracks.
-func (a *App) SoundingNotes(at float64) map[int]*song.Track {
-	out := map[int]*song.Track{}
+func (a *App) SoundingNotes(at float64) map[int]Sounding {
+	out := map[int]Sounding{}
 	if a.Song == nil {
 		return out
 	}
@@ -165,11 +176,56 @@ func (a *App) SoundingNotes(at float64) map[int]*song.Track {
 		for j := range t.Notes {
 			n := &t.Notes[j]
 			if n.StartSec <= at && at < n.EndSec {
-				out[n.Key+a.Transport.Transpose] = t
+				out[n.Key+a.Transport.Transpose] = Sounding{Track: t, Note: n}
 			}
 		}
 	}
 	return out
+}
+
+// ChordAt names the chord sounding at a song time.
+func (a *App) ChordAt(t float64) string {
+	notes := a.SoundingNotes(t)
+	if len(notes) < 3 {
+		return "—"
+	}
+	keys := make([]int, 0, len(notes))
+	for k := range notes {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	return theory.DetectChord(keys)
+}
+
+// ChordsAround returns the previous, current and next chord for the prompter.
+func (a *App) ChordsAround(t float64) (prev, cur, next string) {
+	cur = a.ChordAt(t)
+	if a.Song == nil {
+		return "—", cur, "—"
+	}
+	beats := a.Song.EffectiveBeats()
+	if len(beats) == 0 {
+		return "—", cur, "—"
+	}
+	i := sort.Search(len(beats), func(i int) bool { return beats[i] > t })
+	curBeat := i - 1
+	if curBeat < 0 {
+		curBeat = 0
+	}
+	if cur == "—" {
+		cur = a.ChordAt(beats[curBeat] + 0.001)
+	}
+	if curBeat > 0 {
+		prev = a.ChordAt(beats[curBeat-1] + 0.001)
+	} else {
+		prev = "—"
+	}
+	if curBeat+1 < len(beats) {
+		next = a.ChordAt(beats[curBeat+1] + 0.001)
+	} else {
+		next = "—"
+	}
+	return prev, cur, next
 }
 
 // StepThrough moves to the next or previous played moment (a note or chord

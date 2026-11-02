@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/akhenakh/gmid/internal/audio"
+	"github.com/akhenakh/gmid/internal/hands"
 	"github.com/akhenakh/gmid/internal/smf"
 	"github.com/akhenakh/gmid/internal/song"
 )
@@ -66,6 +68,17 @@ func (a *App) InstallSong(s *song.Song) {
 	}
 	smf.ApplyHandColors(s, a.Prefs.HandLH, a.Prefs.HandRH)
 	a.Song = s
+	a.focusSnapshot = nil
+	a.Mixes = map[int]audio.ChannelMix{}
+	if a.Prefs.HandAssignment {
+		hands.AssignSong(s, hands.Defaults())
+	}
+	a.Transport.Time = s.OriginSec()
+	a.Transport.Playing = false
+	if a.Engine != nil {
+		a.Engine.Load(s)
+		a.PushAudioState()
+	}
 	a.Prefs.LastFile = s.Path
 	_ = a.Prefs.Save()
 	a.UI.LibraryOpen = false

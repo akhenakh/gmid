@@ -45,6 +45,38 @@ func TestParseDemo(t *testing.T) {
 	}
 }
 
+func TestWriteRoundTrip(t *testing.T) {
+	s, err := ReadFile(demo)
+	if err != nil {
+		t.Skipf("demo missing: %v", err)
+	}
+	data, err := Write(s)
+	if err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	back, err := Parse(data, s.Path)
+	if err != nil {
+		t.Fatalf("reparse: %v", err)
+	}
+	if back.NoteCount != s.NoteCount {
+		t.Fatalf("notes %d != %d", back.NoteCount, s.NoteCount)
+	}
+	if len(back.Tracks) != len(s.Tracks) {
+		t.Fatalf("tracks %d != %d", len(back.Tracks), len(s.Tracks))
+	}
+	if len(back.Tempo) == 0 || len(s.Tempo) == 0 {
+		t.Fatal("tempo map lost")
+	}
+	if back.Tempo[0].BPM != s.Tempo[0].BPM {
+		t.Fatalf("tempo %v != %v", back.Tempo[0].BPM, s.Tempo[0].BPM)
+	}
+	for i := range s.Tracks {
+		if len(back.Tracks[i].Notes) != len(s.Tracks[i].Notes) {
+			t.Fatalf("track %d notes %d != %d", i, len(back.Tracks[i].Notes), len(s.Tracks[i].Notes))
+		}
+	}
+}
+
 func TestTickSecondsRoundTrip(t *testing.T) {
 	s, err := ReadFile(demo)
 	if err != nil {

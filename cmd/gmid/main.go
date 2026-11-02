@@ -11,6 +11,7 @@ import (
 	shireiapp "go.hasen.dev/shirei/app"
 
 	"github.com/akhenakh/gmid/internal/app"
+	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/config"
 	"github.com/akhenakh/gmid/ui"
 )
@@ -45,7 +46,19 @@ func main() {
 	ui.Install(prefs.Theme == "warm")
 
 	a := app.New(prefs, assetsDir, *scene)
+
+	var engine *audio.Engine
+	if *pngPath == "" && !*noAudio {
+		engine = audio.New(48000)
+		a.Engine = engine
+		if err := engine.StartOutput(prefs.OutputDevice, prefs.ShareMode == "exclusive", prefs.BufferFrames); err != nil {
+			a.Notify("Audio device: " + err.Error())
+		}
+	}
 	prepareScene(a, *scene)
+	if engine != nil {
+		go loadSoundFont(a, engine, prefs)
+	}
 
 	if *pngPath != "" {
 		if err := os.MkdirAll(filepath.Dir(*pngPath), 0o755); err != nil {
@@ -58,9 +71,46 @@ func main() {
 		return
 	}
 
-	_ = noAudio
 	shireiapp.SetupWindow("gmid", 1440, 900)
+	shireiapp.SetupDrive()
 	shireiapp.Run(func() { ui.Root(a) })
+	if engine != nil {
+		engine.Close()
+	}
+}
+
+// loadSoundFont loads the GM bank off the UI thread, then re-installs the open
+// song so playback can start immediately.
+func loadSoundFont(a *app.App, engine *audio.Engine, prefs config.Prefs) {
+	path := prefs.SoundFont
+	if path == "" {
+		path = filepath.Join(a.Assets, "soundfonts", "GeneralUser-GS.sf2")
+	}
+	if _, err := os.Stat(path); err != nil {
+		publishStatus(a, "Soundfont missing: "+path)
+		return
+	}
+	if err := engine.LoadSoundFont(path); err != nil {
+		publishStatus(a, "Soundfont: "+err.Error())
+		return
+	}
+	WithFrameLock(func() {
+		if a.Song != nil {
+			snap := engine.Snapshot()
+			engine.Load(a.Song)
+			engine.Seek(snap.Time)
+			if snap.Playing {
+				engine.Play(snap.Time)
+			}
+			a.PushAudioState()
+		}
+	})
+	RequestNextFrame()
+}
+
+func publishStatus(a *app.App, msg string) {
+	WithFrameLock(func() { a.Notify(msg) })
+	RequestNextFrame()
 }
 
 func prepareScene(a *app.App, scene string) {
@@ -78,8 +128,14 @@ func prepareScene(a *app.App, scene string) {
 		}
 	}
 	switch scene {
+	case "roll", "mixer", "presentation":
+		a.Seek(8)
+	}
+	switch scene {
 	case "mixer":
 		a.UI.MixerOpen = true
+	case "library":
+		a.UI.LibraryOpen = true
 	case "settings":
 		a.UI.SettingsOpen = true
 	case "presentation":

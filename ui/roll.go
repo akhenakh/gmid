@@ -2,8 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/akhenakh/gmid/internal/app"
 	"github.com/akhenakh/gmid/internal/theory"
@@ -50,6 +52,12 @@ func rollEmptyState(a *app.App) {
 	})
 }
 
+// loopDrag holds the Alt-drag anchor between frames.
+type loopDrag struct {
+	anchor float64
+	active bool
+}
+
 func drawRoll(a *app.App) {
 	w := GetContentWidth()
 	h := GetContentHeight()
@@ -71,10 +79,14 @@ func drawRoll(a *app.App) {
 	}
 	onScreen := func(y float32) bool { return y > -80 && y < h+80 }
 
-	// Interaction: wheel scrubs, click seeks. Process before children so
-	// ModAttrs runs at the right time.
+	// Interaction: wheel scrubs, click seeks, Alt-drag draws a loop.
 	ProcessButtonEvents(false)
+	ld := Use[loopDrag]("loop-drag")
 	if IsHovered() {
+		rect := GetScreenRect()
+		pt := GetInputState().MousePoint
+		pct := (pt[1] - rect.Origin[1]) / rect.Size[1]
+		tAt := now + float64(float32(0.80)-pct)*visible
 		scroll := GetFrameInput().Scroll[1]
 		if scroll != 0 {
 			step := 2.0
@@ -84,11 +96,40 @@ func drawRoll(a *app.App) {
 			a.Seek(now - float64(scroll)*step)
 		}
 		if GetFrameInput().Mouse == MouseClick {
-			rect := GetScreenRect()
-			pt := GetInputState().MousePoint
-			pct := (pt[1] - rect.Origin[1]) / rect.Size[1]
-			t := now + float64(float32(0.80)-pct)*visible
-			a.Seek(t)
+			if GetFrameInput().ClickCount >= 2 {
+				a.Transport.LoopEnabled = false
+				a.Transport.LoopActive = false
+				if a.Engine != nil {
+					a.Engine.SetLoop(false, 0, 0)
+				}
+			} else if GetInputState().Modifiers&ModAlt != 0 {
+				ld.active = true
+				ld.anchor = tAt
+				a.Transport.LoopStart, a.Transport.LoopEnd = tAt, tAt
+				a.Transport.LoopEnabled = true
+			} else {
+				a.Seek(tAt)
+			}
+		}
+		if ld.active && IsActive() {
+			lo, hi := ld.anchor, tAt
+			if lo > hi {
+				lo, hi = hi, lo
+			}
+			a.Transport.LoopStart, a.Transport.LoopEnd = lo, hi
+			a.Transport.LoopEnabled = true
+			if a.Engine != nil {
+				a.Engine.SetLoop(true, lo, hi)
+			}
+		}
+		if ld.active && !IsActive() {
+			ld.active = false
+			if a.Transport.LoopEnd-a.Transport.LoopStart < 0.05 {
+				a.Transport.LoopEnabled = false
+				if a.Engine != nil {
+					a.Engine.SetLoop(false, 0, 0)
+				}
+			}
 		}
 	}
 
@@ -180,6 +221,11 @@ func drawRoll(a *app.App) {
 		}
 	}
 
+	// Hit effects at the playhead.
+	if a.Prefs.VisualEffects {
+		drawHitEffects(a, layout, min, h, playY)
+	}
+
 	// Playhead and the played area below it.
 	Element(Attrs(Float(0, playY), FixSize(w, h-playY), NoAnimate,
 		BackgroundVec(Alpha(ColBlack, .28))))
@@ -189,6 +235,82 @@ func drawRoll(a *app.App) {
 		BorderColorVec(Alpha(ColAmber, .6))), func() {
 		Label(formatClock(now), Fonts("JetBrains Mono"), FontSize(10), TextColorVec(ColAmber))
 	})
+}
+
+func drawHitEffects(a *app.App, layout []KeyLayout, min int, h, playY float32) {
+	now := time.Now()
+	for _, hit := range a.Hits {
+		age := now.Sub(hit.Born).Seconds()
+		if age < 0 || age > 0.65 {
+			continue
+		}
+		if hit.Key < min || hit.Key-min >= len(layout) {
+			continue
+		}
+		k := layout[hit.Key-min]
+		cx := k.X + k.W/2
+		col := Col(hit.Color)
+		t := float32(age / 0.65)
+		fade := (1 - t) * (1 - t)
+		pattern := hit.Pattern
+		if pattern == "" {
+			pattern = "glow"
+		}
+		switch pattern {
+		case "ripple":
+			size := 10 + 90*t
+			Element(Attrs(Float(cx-size/2, playY-size/2), FixSize(size, size),
+				Corners(size/2), BorderWidth(2), BorderColorVec(Alpha(col, fade)), NoAnimate))
+		case "burst":
+			for i := 0; i < 8; i++ {
+				ang := float64(i)*math.Pi/4 + float64(hit.Seed%7)*0.2
+				r := float64(8 + 42*t)
+				px := cx + float32(math.Cos(ang)*r)
+				py := playY + float32(math.Sin(ang)*r)
+				sz := 8 * (1 - t)
+				Element(Attrs(Float(px-sz/2, py-sz/2), FixSize(sz, sz), Corners(sz/2),
+					BackgroundVec(Alpha(col, fade)), NoAnimate))
+			}
+		case "smoke":
+			for i := 0; i < 3; i++ {
+				sz := (14 + float32(i)*8) * (1 + t)
+				px := cx + float32(i-1)*10*t
+				py := playY - (18+float32(i)*10)*t
+				Element(Attrs(Float(px-sz/2, py-sz/2), FixSize(sz, sz), Corners(sz/2),
+					BackgroundVec(Alpha(Col("#9a9aa8"), .25*fade)), NoAnimate, Glow(10)))
+			}
+		case "aura":
+			sz := k.W + 30*t
+			Element(Attrs(Float(cx-sz/2, playY-sz/2), FixSize(sz, sz), Corners(sz/2),
+				BackgroundVec(Alpha(col, .20*fade)), NoAnimate, Glow(16)))
+		case "nova":
+			for i := 0; i < 8; i++ {
+				ang := float64(i) * math.Pi / 4
+				len := float64(16 + 56*t)
+				px := cx + float32(math.Cos(ang)*len/2)
+				py := playY + float32(math.Sin(ang)*len/2)
+				w := float32(2)
+				hh := float32(len)
+				if i%2 == 1 {
+					w, hh = hh, w
+				}
+				Element(Attrs(Float(px-w/2, py-hh/2), FixSize(w, hh), NoAnimate,
+					BackgroundVec(Alpha(col, .7*fade))))
+			}
+		case "comet":
+			for i := 0; i < 6; i++ {
+				sz := (10 - float32(i)) * (1 - t*0.4)
+				px := cx
+				py := playY - float32(i)*8 - 30*t
+				Element(Attrs(Float(px-sz/2, py-sz/2), FixSize(sz, sz), Corners(sz/2),
+					BackgroundVec(Alpha(col, fade*float32(1-float32(i)/6))), NoAnimate))
+			}
+		default: // glow
+			sz := 26 + 70*t
+			Element(Attrs(Float(cx-sz/2, playY-sz/2), FixSize(sz, sz), Corners(sz/2),
+				BackgroundVec(Alpha(col, .35*fade)), NoAnimate, Glow(14)))
+		}
+	}
 }
 
 func handColor(a *app.App, hand string) Vec4 {
@@ -241,8 +363,18 @@ func soundingKeys(a *app.App) map[int]KeyState {
 	if a.Song == nil {
 		return out
 	}
-	for key, tr := range a.SoundingNotes(a.Transport.Time) {
-		out[key] = KeyState{Color: TrackColor(tr.Color)}
+	for key, sounding := range a.SoundingNotes(a.Transport.Time) {
+		c := TrackColor(sounding.Track.Color)
+		if a.Prefs.HandAssignment && sounding.Note.Hand != "" {
+			c = handColor(a, sounding.Note.Hand)
+		}
+		out[key] = KeyState{Color: c}
+		if a.Prefs.HandTags && sounding.Note.Hand != "" {
+			out[key] = KeyState{Color: c, Labels: []string{sounding.Note.Hand}}
+		}
+	}
+	for key := range a.LiveKeys {
+		out[key] = KeyState{Color: ColAmber}
 	}
 	return out
 }

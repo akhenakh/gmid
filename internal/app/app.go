@@ -3,6 +3,7 @@ package app
 import (
 	"time"
 
+	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/config"
 	"github.com/akhenakh/gmid/internal/song"
 )
@@ -15,7 +16,15 @@ type App struct {
 
 	Song *song.Song
 
-	Engine Engine
+	Engine     Engine
+	LiveKeys   map[int]bool
+	Mixes      map[int]audio.ChannelMix
+	MixesDirty bool
+
+	focusSnapshot []focusState
+	Hits          []Hit
+	lastHitScan   float64
+	hitSeq        int
 
 	Transport Transport
 
@@ -59,6 +68,7 @@ type UIState struct {
 	ScaleExplorerOpen  bool
 	LockedChordOpen    bool
 	ExportOpen         bool
+	MetronomeMenu      bool
 	Confirm            *Confirm
 	MenuAnchor         string
 
@@ -86,10 +96,11 @@ func New(prefs config.Prefs, assets, scene string) *App {
 			Speed: 1,
 		},
 		UI: UIState{
-			SetupTab:   "setup",
-			SideOpen:   true,
-			PanelsOpen: true,
-			KeysDocked: true,
+			SetupTab:      "setup",
+			SideOpen:      true,
+			PanelsOpen:    true,
+			KeysDocked:    true,
+			SettingsGroup: "audio",
 		},
 	}
 }

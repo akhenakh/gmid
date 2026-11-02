@@ -15,10 +15,12 @@ require (
 	github.com/dboslee/lru v0.0.1 // indirect
 	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
+	github.com/gen2brain/malgo v0.11.27 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/sinshu/go-meltysynth v0.0.0-20230205031334-05d311382fc4 // indirect
 	go.hasen.dev/generic v0.1.8 // indirect
 	go.hasen.dev/udplib v0.1.0 // indirect
 	golang.org/x/image v0.43.0 // indirect

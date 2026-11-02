@@ -20,6 +20,8 @@ const (
 
 // Root builds the whole application surface.
 func Root(a *app.App) {
+	a.SyncEngine()
+	a.UpdateHits()
 	ModAttrs(UseSurface(SurfaceCanvas),
 		AmendTextStyle(Fonts("Inter"), FontSize(13)))
 
@@ -96,25 +98,80 @@ func TopBar(a *app.App) {
 
 		FlexSpacer()
 
-		bpm := 120.0
-		if a.Song != nil {
-			bpm = a.Song.BPMAt(a.Transport.Time) * a.Transport.Speed
-		}
-		ValuePill("BPM", fmt.Sprintf("%.0f", bpm), false)
-		ValuePill("KEY", keyLabel(a), true)
+		tempoControl(a)
+		keyControl(a)
 
 		if IconButton(TypArrowRepeat, "Loop region", a.Song != nil) {
 			a.ToggleLoop()
 		}
-		if IconButton(TypStopwatch, "Metronome (right-click for count-in)", true) {
-			a.ToggleMetronome()
-		}
+		metID := metronomeButton(a)
+		PopupPanel(&a.UI.MetronomeMenu, metID, Attrs(Pad(14), Gap(8), FixWidth(240), Corners(10)), func() {
+			ModAttrs(UseSurface(SurfacePanel))
+			Label("Metronome", FontSize(14), FontWeight(WeightBold), TextColorVec(ColText))
+			SettingRow("Click", "Follows the file's tempo map.", func() {
+				ToggleSwitch(&a.Prefs.Metronome)
+				a.SavePrefs()
+				a.PushAudioState()
+			})
+			SettingRow("Volume", "Independent of the master fader.", func() {
+				v := float32(a.Prefs.MetronomeVolume)
+				Slider(&v, SliderAttrs{Min: 0, Max: 1, Step: 0.01, Width: 110})
+				if float64(v) != a.Prefs.MetronomeVolume {
+					a.Prefs.MetronomeVolume = float64(v)
+					a.SavePrefs()
+					a.PushAudioState()
+				}
+			})
+			HDivider()
+			SettingRow("Count-in", "Clicks before the music starts.", func() {
+				ToggleSwitch(&a.Prefs.CountIn)
+				a.SavePrefs()
+				a.PushAudioState()
+			})
+			SettingRow("Bars", "1–4 bars.", func() {
+				n := a.Prefs.CountInBars
+				if CtrlButton(TypMinus, "", n > 1) {
+					a.Prefs.CountInBars--
+					a.SavePrefs()
+					a.PushAudioState()
+				}
+				Label(fmt.Sprintf("%d", n), Fonts("JetBrains Mono"), FontSize(12), TextColorVec(ColText))
+				if CtrlButton(TypPlus, "", n < 4) {
+					a.Prefs.CountInBars++
+					a.SavePrefs()
+					a.PushAudioState()
+				}
+			})
+		})
 		if IconButton(TypCog, "Settings (Ctrl+,)", true) {
 			a.UI.SettingsOpen = !a.UI.SettingsOpen
 		}
 		if IconButton(TypArrowMaximise, "Presentation mode (F11)", true) {
 			a.UI.Presentation = true
 		}
+	})
+}
+
+func metronomeButton(a *app.App) ContainerId {
+	return Container(Attrs(FixSize(30, 28), Corners(6)), func() {
+		ProcessButtonEvents(false)
+		if a.Prefs.Metronome {
+			ModAttrs(BackgroundVec(Alpha(ColAmber, .18)))
+		}
+		if IsHovered() {
+			if GetFrameInput().Mouse == MouseClick {
+				if GetInputState().MouseButton == MouseSecondary {
+					a.UI.MetronomeMenu = true
+				} else {
+					a.ToggleMetronome()
+				}
+			}
+		}
+		c := ColTextDim
+		if a.Prefs.Metronome {
+			c = ColAmber
+		}
+		Icon(TypStopwatch, FontSize(15), TextColorVec(c))
 	})
 }
 
@@ -134,7 +191,7 @@ func MainColumn(a *app.App) {
 			BorderColorVec(Alpha(ColBorder, .6))), func() {
 			min, max := KeyRange(a.Prefs.KeyRange)
 			PianoKeyboard(min, max, keyboardHeight, soundingKeys(a),
-				a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, nil, nil)
+				a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
 		})
 		_ = bed
 	})
@@ -166,7 +223,11 @@ func RollHeader(a *app.App) {
 			a.UI.LibraryOpen = !a.UI.LibraryOpen
 		}
 		if IconButton(TypThLarge, "Console Mixer (Ctrl+Shift+M)", a.Song != nil) {
-			a.UI.MixerOpen = !a.UI.MixerOpen
+			if a.UI.MixerOpen {
+				a.CloseMixer()
+			} else {
+				a.UI.MixerOpen = true
+			}
 		}
 	})
 }
@@ -182,7 +243,16 @@ func KeyboardBar(a *app.App) {
 			}
 		}
 		FlexSpacer()
-		Label(chordNameAt(a), FontSize(15), FontWeight(WeightBold), TextColorVec(ColText))
+		if a.Prefs.ChordPrompter && a.Song != nil {
+			prev, cur, next := a.ChordsAround(a.Transport.Time)
+			Container(Attrs(Row, CrossMid, Gap(14)), func() {
+				ChordCell("PREV", prev, ColTextMute)
+				ChordCell("NOW", cur, ColAmber)
+				ChordCell("NEXT", next, ColTextDim)
+			})
+		} else {
+			Label(chordNameAt(a), FontSize(15), FontWeight(WeightBold), TextColorVec(ColText))
+		}
 		FlexSpacer()
 		if a.Song != nil {
 			Caption(fmt.Sprintf("%d keys", a.Prefs.KeyRange))
@@ -219,6 +289,9 @@ func LeftPanel(a *app.App) {
 				if float64(v) != a.Prefs.MasterVolume {
 					a.Prefs.MasterVolume = float64(v)
 					a.SavePrefs()
+					if a.Engine != nil {
+						a.Engine.SetMasterVolume(a.Prefs.MasterVolume)
+					}
 				}
 			})
 
@@ -279,7 +352,7 @@ func SettingRow(title, hint string, control func()) {
 			Label(title, FontSize(12), TextColorVec(ColText))
 			Caption(hint)
 		})
-		Container(Attrs(Row, CrossMid, Gap(4)), control)
+		Container(Attrs(Row, CrossMid, Gap(4), MainAlign(AlignEnd), MinWidth(50)), control)
 	})
 }
 
@@ -287,6 +360,16 @@ func TrackPanel(a *app.App) {
 	Container(Attrs(FixWidth(trackPanelWidth), Expand, UseSurface(SurfacePanel),
 		Pad(12), Gap(8)), func() {
 		PanelHeader("Tracks", func() {
+			if a.Prefs.FocusMode && a.Song != nil {
+				if a.FocusActive() {
+					NextButtonType(ButtonPrimary)
+					if CtrlButton(TypAdjustContrast, "Focus on", true) {
+						a.ToggleFocus()
+					}
+				} else if CtrlButton(TypAdjustContrast, "Focus", true) {
+					a.ToggleFocus()
+				}
+			}
 			if IconButton(TypCog, "Track settings", true) {
 				a.UI.SettingsOpen = true
 			}
@@ -329,9 +412,11 @@ func trackRow(a *app.App, i int) {
 		})
 		if IconButton(iconBool(t.Muted, TypVolumeMute, TypVolume), "Mute", true) {
 			t.Muted = !t.Muted
+			a.PushAudioState()
 		}
 		if IconButton(iconBool(t.Solo, TypStar, TypStarOutline), "Solo", true) {
 			t.Solo = !t.Solo
+			a.PushAudioState()
 		}
 		if IconButton(iconBool(t.Visible, TypEye, TypEyeOutline), "Show on roll", true) {
 			t.Visible = !t.Visible
@@ -368,7 +453,78 @@ func Presentation(a *app.App) {
 		}
 		PianoRoll(a)
 		min, max := KeyRange(a.Prefs.KeyRange)
-		PianoKeyboard(min, max, 190, soundingKeys(a), a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, nil, nil)
+		PianoKeyboard(min, max, 190, soundingKeys(a), a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
+	})
+}
+
+func ChordCell(label, chord string, c Vec4) {
+	Container(Attrs(Row, CrossMid, Gap(5)), func() {
+		Label(label, FontSize(8), TextColorVec(ColTextMute))
+		Label(chord, FontSize(14), FontWeight(WeightBold), TextColorVec(c))
+	})
+}
+
+type tempoHold struct {
+	ticks int
+}
+
+func tempoControl(a *app.App) {
+	bpm := 120.0
+	if a.Song != nil {
+		bpm = a.Song.BPMAt(a.Transport.Time) * a.Transport.Speed
+	}
+	Pill(Attrs(Gap(4)), func() {
+		Caption("BPM")
+		Label(fmt.Sprintf("%.0f", bpm), Fonts("JetBrains Mono"), FontSize(12),
+			FontWeight(WeightBold), TextColorVec(ColText))
+		if a.Transport.Speed != 1 {
+			Caption(fmt.Sprintf("%.0f%%", a.Transport.Speed*100))
+		}
+		tempoStep(a, "tempo-down", -1, TypArrowDown)
+		tempoStep(a, "tempo-up", 1, TypArrowUp)
+		if a.Transport.Speed != 1 {
+			if CtrlButton(TypRefresh, "Reset tempo", true) {
+				a.SetSpeed(1)
+			}
+		}
+	})
+}
+
+func tempoStep(a *app.App, key string, dir int, icon IconGlyph) {
+	h := Use[tempoHold](key)
+	Container(Attrs(FixSize(20, 24), Corners(4)), func() {
+		ProcessButtonEvents(false)
+		if IsActive() {
+			if h.ticks == 0 || h.ticks > 18 && h.ticks%4 == 0 {
+				a.SetSpeed(a.Transport.Speed + float64(dir)*0.05)
+			}
+			h.ticks++
+			ModAttrs(BackgroundVec(Alpha(ColAmber, .16)))
+		} else {
+			h.ticks = 0
+		}
+		Icon(icon, FontSize(13), TextColorVec(ColTextDim))
+	})
+}
+
+func keyControl(a *app.App) {
+	Pill(Attrs(Gap(4)), func() {
+		Caption("KEY")
+		Label(keyLabel(a), FontSize(12), FontWeight(WeightBold), TextColorVec(ColAmber))
+		if a.Transport.Transpose != 0 {
+			Caption(fmt.Sprintf("%+d", a.Transport.Transpose))
+		}
+		if CtrlButton(TypArrowDown, "", true) {
+			a.SetTranspose(a.Transport.Transpose - 1)
+		}
+		if CtrlButton(TypArrowUp, "", true) {
+			a.SetTranspose(a.Transport.Transpose + 1)
+		}
+		if a.Transport.Transpose != 0 {
+			if CtrlButton(TypRefresh, "Reset key", true) {
+				a.SetTranspose(0)
+			}
+		}
 	})
 }
 
@@ -380,6 +536,7 @@ func keyLabel(a *app.App) string {
 	if !ok {
 		return "—"
 	}
+	sem = ((sem+a.Transport.Transpose)%12 + 12) % 12
 	name := NoteName(sem, "english", "flat")
 	if minor {
 		return name + "m"

@@ -108,24 +108,30 @@ func PianoKeyboard(min, max int, height float32, active map[int]KeyState,
 
 		// Interaction is handled at the bed level so dragging across keys
 		// glissandos without per-key containers fighting for the pointer.
-		ProcessButtonEvents(false)
+		lastStored := Use[int]("kb-last")
+		st := ProcessButtonEvents(false)
 		if onDown != nil || onUp != nil {
 			rect := GetScreenRect()
-			pt := GetInputState().MousePoint
-			x := pt[0] - rect.Origin[0]
-			pressed := GetFrameInput().Mouse == MouseClick
-			released := GetFrameInput().Mouse == MouseRelease
-			if pressed && x >= 0 && x <= rect.Size[0] {
-				if onDown != nil {
-					onDown(KeyAt(x, BuildKeyLayout(rect.Size[0], min, max), min, max))
+			x := GetInputState().MousePoint[0] - rect.Origin[0]
+			layout := BuildKeyLayout(rect.Size[0], min, max)
+			pressedKey := KeyAt(x, layout, min, max)
+			if st.Active && x >= 0 && x <= rect.Size[0] {
+				key := pressedKey
+				if *lastStored-1 != key {
+					if *lastStored > 0 && onUp != nil {
+						onUp(*lastStored - 1)
+					}
+					if onDown != nil {
+						onDown(key)
+					}
+					*lastStored = key + 1
 				}
-			}
-			if released && onUp != nil {
+			} else if *lastStored > 0 {
 				if onUp != nil {
-					onUp(KeyAt(x, BuildKeyLayout(rect.Size[0], min, max), min, max))
+					onUp(*lastStored - 1)
 				}
+				*lastStored = 0
 			}
-			_ = h
 		}
 
 		layout := BuildKeyLayout(w, min, max)
@@ -148,12 +154,23 @@ func PianoKeyboard(min, max int, height float32, active map[int]KeyState,
 			Container(Attrs(Float(k.X, 0), FixSize(k.W-1, h), NoAnimate,
 				BackgroundVec(bg), Corners4(0, 0, 3, 3),
 				BorderWidth(1), BorderColorVec(border)), func() {
+				if lit && len(activeState.Labels) > 0 {
+					BadgeLabel(activeState.Labels[0], k.W)
+				}
 				if showNames || showOctaves {
+					labelCol := Col("#55556a")
+					if lit {
+						if bg[2] > 60 {
+							labelCol = Col("#1a1a24")
+						} else {
+							labelCol = Alpha(ColWhite, .88)
+						}
+					}
 					Container(Attrs(FixSize(k.W-1, 20), Float(0, h-19),
 						MainAlign(AlignMiddle), CrossAlign(AlignEnd), Pad(2)), func() {
 						name := KeyLabel(m, showNames, showOctaves)
 						if name != "" {
-							Label(name, FontSize(9), TextColorVec(Col("#55556a")))
+							Label(name, FontSize(9), TextColorVec(labelCol))
 						}
 					})
 				}
@@ -177,8 +194,25 @@ func PianoKeyboard(min, max int, height float32, active map[int]KeyState,
 			Container(Attrs(Float(k.X, 0), Z(2), FixSize(k.W, blackH), NoAnimate,
 				BackgroundVec(bg), Corners4(0, 0, 2, 2),
 				BorderWidth(1), BorderColorVec(border),
-				BoxShadow(3)), func() {})
+				BoxShadow(3)), func() {
+				if lit && len(activeState.Labels) > 0 {
+					BadgeLabel(activeState.Labels[0], k.W)
+				}
+			})
 		}
+	})
+}
+
+// BadgeLabel draws the L/R hand badge at the top of a lit key.
+func BadgeLabel(text string, keyWidth float32) {
+	size := float32(14)
+	if keyWidth < 18 {
+		size = 10
+	}
+	Container(Attrs(Float((keyWidth-size)/2, 4), FixSize(size, size),
+		Corners(size/2), BackgroundVec(Alpha(ColBlack, .35)),
+		MainAlign(AlignMiddle), CrossAlign(AlignMiddle)), func() {
+		Label(text, FontSize(9), FontWeight(WeightBold), TextColorVec(ColWhite))
 	})
 }
 
