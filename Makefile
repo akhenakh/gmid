@@ -1,5 +1,5 @@
 GO ?= go
-SCENES ?= shell roll library mixer settings chord-explorer scale-explorer note-editor tap-tempo presentation keys-floating
+SCENES ?= shell roll library mixer settings chord-explorer scale-explorer note-editor presentation keys-floating export
 
 .PHONY: all build run test lint fmt assets visual clean
 

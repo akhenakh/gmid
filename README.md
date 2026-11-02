@@ -48,7 +48,7 @@ golangci-lint run
 
 ## Visual QA
 
-Screenshots are reviewed by the local `Qwen3.8-27B` vision model; images never
+Screenshots are reviewed by the local `Qwen3.8-27B-VISION` model; images never
 enter the coding model's context. See `.operator/guides/visual-qa.md`.
 
 ## License
