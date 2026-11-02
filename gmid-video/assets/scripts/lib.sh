@@ -8,6 +8,12 @@ PORT=${1:-8800}
 URL="http://127.0.0.1:${PORT}/mcp"
 PID=""
 
+# Keep video scenes deterministic and away from the user's preferences. The
+# config starts fresh for every scene, so no library preset or stale panel
+# state leaks in from an earlier take.
+export GMID_CONFIG=/tmp/gmid-video-prefs.json
+rm -f "$GMID_CONFIG"
+
 cleanup() {
   if [ -n "$PID" ]; then
     kill "$PID" 2>/dev/null || true
