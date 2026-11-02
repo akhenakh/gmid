@@ -96,6 +96,9 @@ func (s *Server) withApp(fn func(*app.App) (*sdk.CallToolResult, error)) (*sdk.C
 	var res *sdk.CallToolResult
 	var err error
 	shirei.WithFrameLock(func() { res, err = fn(s.app) })
+	// Tool calls change state; make sure the next frame reflects it even when
+	// the app is idle (no playback, no pointer movement).
+	shirei.RequestNextFrame()
 	return res, err
 }
 
