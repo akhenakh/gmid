@@ -22,7 +22,7 @@ type Engine interface {
 	SetDecentGain(db float64)
 	DecentInfo() (sampler.Stats, bool)
 	DecentControls() []dspreset.Control
-	StartOutput(device string, exclusive bool, frames int) error
+	StartOutput(device, backend string, exclusive bool, frames int) error
 	Play(from float64)
 	Pause()
 	Stop()

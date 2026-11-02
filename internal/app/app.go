@@ -105,6 +105,8 @@ type UIState struct {
 
 	Toast     string
 	ToastTill time.Time
+
+	AudioDevices []audio.Device
 }
 
 type Confirm struct {

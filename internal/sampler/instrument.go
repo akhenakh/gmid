@@ -93,6 +93,7 @@ func Load(p *dspreset.Preset, sampleRate int) (*Instrument, error) {
 		sampleRate = 48000
 	}
 	inst := &Instrument{preset: p, sr: sampleRate, gain: 1, gainAdjust: 1}
+	inst.voices = make([]*voice, 0, 64)
 	buffers := map[string]*Buffer{}
 	inst.groups = make([]*groupState, len(p.Groups))
 	for gi, g := range p.Groups {

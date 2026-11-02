@@ -82,6 +82,54 @@ func SettingsWindow(a *app.App) {
 					}
 					a.SavePrefs()
 				})
+				SettingRow("Output backend", "Auto follows the system; ALSA bypasses PipeWire.", func() {
+					if CompactSegmented(&a.Prefs.AudioBackend, func() {
+						SegmentedCell("Auto", "auto")
+						SegmentedCell("Pulse", "pulse")
+						SegmentedCell("ALSA", "alsa")
+						SegmentedCell("JACK", "jack")
+					}) {
+						a.SetAudioBackend(a.Prefs.AudioBackend)
+					}
+				})
+				SettingRow("Buffer size", "Smaller is tighter; raise it if audio crackles.", func() {
+					buf := fmt.Sprintf("%d", a.Prefs.BufferFrames)
+					if CompactSegmented(&buf, func() {
+						SegmentedCell("128", "128")
+						SegmentedCell("256", "256")
+						SegmentedCell("512", "512")
+						SegmentedCell("1024", "1024")
+					}) {
+						var f int
+						_, _ = fmt.Sscanf(buf, "%d", &f)
+						a.SetBufferFrames(f)
+					}
+				})
+				Container(Attrs(Gap(3), Pad2(6, 2)), func() {
+					name := a.Prefs.OutputDevice
+					if name == "" {
+						name = "System default"
+					}
+					Label("Output device", FontSize(12), TextColorVec(ColText))
+					Caption("Using: " + name + " · default follows the system mixer")
+					Container(Attrs(Row, Gap(4), Wrap), func() {
+						if CtrlButton(NoIcon, "System default", true) {
+							a.SetAudioDevice("")
+						}
+						if CtrlButton(NoIcon, "List devices", true) {
+							a.RefreshAudioDevices()
+						}
+						for _, d := range a.UI.AudioDevices {
+							label := d.Name
+							if len(label) > 42 {
+								label = label[:40] + "…"
+							}
+							if CtrlButton(NoIcon, label, true) {
+								a.SetAudioDevice(d.Name)
+							}
+						}
+					})
+				})
 				SettingRow("Master volume", "Persists across sessions.", func() {
 					v := float32(a.Prefs.MasterVolume)
 					Slider(&v, SliderAttrs{Min: 0, Max: 1, Step: 0.01, Width: 130})

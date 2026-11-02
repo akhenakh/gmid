@@ -72,5 +72,9 @@ go run ./tools/mcpcheck -tool gmid_screenshot -out /tmp/gmid.png
 - Times are song seconds. Ticks are MIDI ticks at the song's PPQ.
 - MIDI note IDs come from `gmid_notes`; the editor's `gmid_note_edit` accepts them.
 - `gmid_settings_set` merges JSON; unknown keys are ignored by `encoding/json`.
+  Changing `audioBackend`, `bufferFrames`, `outputDevice` or `shareMode`
+  reopens the output device immediately.
+- `gmid_status`'s `audio` block reports the requested backend, buffer size and
+  device alongside readiness and peak level.
 - The server holds Shirei's frame lock while reading/writing app state, so MCP
   calls cannot race the render loop. Screenshots render through the same lock.

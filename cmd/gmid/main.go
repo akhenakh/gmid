@@ -59,7 +59,7 @@ func main() {
 	if *pngPath == "" && !*noAudio {
 		engine = audio.New(48000)
 		a.Engine = engine
-		if err := engine.StartOutput(prefs.OutputDevice, prefs.ShareMode == "exclusive", prefs.BufferFrames); err != nil {
+		if err := a.OpenOutput(prefs.ShareMode == "exclusive"); err != nil {
 			a.Notify("Audio device: " + err.Error())
 		}
 	}

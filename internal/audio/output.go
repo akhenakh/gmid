@@ -2,10 +2,43 @@ package audio
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"unsafe"
 
 	"github.com/gen2brain/malgo"
 )
+
+// Backend names accepted by StartOutput.
+const (
+	BackendAuto  = "auto"
+	BackendPulse = "pulse"
+	BackendALSA  = "alsa"
+	BackendJACK  = "jack"
+	BackendNull  = "null"
+)
+
+func selectedBackends(name string) []malgo.Backend {
+	switch name {
+	case BackendPulse, "pulseaudio", "pipewire":
+		return []malgo.Backend{malgo.BackendPulseaudio}
+	case BackendALSA:
+		return []malgo.Backend{malgo.BackendAlsa}
+	case BackendJACK:
+		return []malgo.Backend{malgo.BackendJack}
+	case BackendNull:
+		return []malgo.Backend{malgo.BackendNull}
+	default:
+		return nil
+	}
+}
+
+func audioLogProc() malgo.LogProc {
+	if os.Getenv("GMID_AUDIO_LOG") == "" {
+		return nil
+	}
+	return func(msg string) { log.Printf("audio: %s", msg) }
+}
 
 type malgoOutput struct {
 	ctx    *malgo.AllocatedContext
@@ -22,7 +55,12 @@ type Device struct {
 
 // ListDevices enumerates playback devices.
 func ListDevices() ([]Device, error) {
-	ctx, err := malgo.InitContext(nil, malgo.ContextConfig{}, func(string) {})
+	return ListDevicesFor(BackendAuto)
+}
+
+// ListDevicesFor enumerates playback devices for one backend (auto = all).
+func ListDevicesFor(backend string) ([]Device, error) {
+	ctx, err := malgo.InitContext(selectedBackends(backend), malgo.ContextConfig{}, audioLogProc())
 	if err != nil {
 		return nil, err
 	}
@@ -41,14 +79,15 @@ func ListDevices() ([]Device, error) {
 	return out, nil
 }
 
-// StartOutput opens a stereo float32 playback device.
-func (e *Engine) StartOutput(deviceName string, exclusive bool, frames int) error {
+// StartOutput opens a stereo float32 playback device. backend is auto, pulse,
+// alsa, jack or null; frames is the requested period size.
+func (e *Engine) StartOutput(deviceName, backend string, exclusive bool, frames int) error {
 	if frames < 32 {
-		frames = 256
+		frames = 512
 	}
-	ctx, err := malgo.InitContext(nil, malgo.ContextConfig{}, func(msg string) {
-		_ = msg
-	})
+	ctx, err := malgo.InitContext(selectedBackends(backend), malgo.ContextConfig{
+		ThreadPriority: malgo.ThreadPriorityRealtime,
+	}, audioLogProc())
 	if err != nil {
 		return fmt.Errorf("audio context: %w", err)
 	}

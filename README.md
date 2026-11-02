@@ -69,6 +69,15 @@ enter the coding model's context. See `.operator/guides/visual-qa.md`.
 It exposes transport, song/track inspection, mixer, note editing, library,
 harmony, export, settings and screenshots. See [docs/MCP.md](docs/MCP.md).
 
+## Audio on Linux
+
+gmid plays through miniaudio (malgo). Settings → Audio has an **Output
+backend** (Auto / Pulse / ALSA / JACK), **Buffer size** (128–1024 frames) and
+an **Output device** picker. Auto follows the system — normally PipeWire via
+PulseAudio; ALSA talks to the PipeWire ALSA plugin or the hardware directly.
+If playback crackles, raise the buffer to 512 or 1024, then try the other
+backend. `GMID_AUDIO_LOG=1` prints backend and device diagnostics.
+
 ## License
 
 GPL-3.0-or-later. Third-party assets and libraries are recorded in

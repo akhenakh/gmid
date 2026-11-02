@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-const prefsVersion = 1
+const prefsVersion = 2
 
 // Prefs is the durable user configuration. Soundfont/mixer choices that belong
 // to one song live in the file, not here.
@@ -24,7 +24,8 @@ type Prefs struct {
 	DecentPreset string  `json:"decentPreset"` // .dspreset or .dslibrary
 	DecentGain   float64 `json:"decentGain"`   // user gain in dB on top of level matching
 	OutputDevice string  `json:"outputDevice"`
-	ShareMode    string  `json:"shareMode"` // shared | exclusive
+	AudioBackend string  `json:"audioBackend"` // auto | pulse | alsa | jack | null
+	ShareMode    string  `json:"shareMode"`    // shared | exclusive
 	BufferFrames int     `json:"bufferFrames"`
 	MasterVolume float64 `json:"masterVolume"`
 	AutoLevel    bool    `json:"autoLevel"`
@@ -106,7 +107,8 @@ func Defaults() Prefs {
 		ExportAudioEnabled: true,
 		SoundEngine:        "gm",
 		ShareMode:          "shared",
-		BufferFrames:       256,
+		AudioBackend:       "auto",
+		BufferFrames:       512,
 		MasterVolume:       0.85,
 		AutoLevel:          true,
 		Metronome:          false,
@@ -208,6 +210,13 @@ func (p *Prefs) Save() error {
 
 func (p *Prefs) fixup() {
 	d := Defaults()
+	if p.Version < 2 {
+		// v2 raises the old 256-frame default: it underran on PipeWire systems.
+		if p.BufferFrames == 256 {
+			p.BufferFrames = 512
+		}
+		p.Version = prefsVersion
+	}
 	if p.Version == 0 {
 		p.Version = prefsVersion
 	}
@@ -216,6 +225,11 @@ func (p *Prefs) fixup() {
 	}
 	if p.ShareMode != "shared" && p.ShareMode != "exclusive" {
 		p.ShareMode = d.ShareMode
+	}
+	switch p.AudioBackend {
+	case "auto", "pulse", "alsa", "jack", "null":
+	default:
+		p.AudioBackend = d.AudioBackend
 	}
 	if p.Theme != "warm" {
 		p.Theme = "dark"
@@ -227,7 +241,10 @@ func (p *Prefs) fixup() {
 		p.CountInBars = 1
 	}
 	if p.BufferFrames < 32 {
-		p.BufferFrames = 256
+		p.BufferFrames = d.BufferFrames
+	}
+	if p.BufferFrames > 8192 {
+		p.BufferFrames = 8192
 	}
 	if p.MasterVolume < 0 || p.MasterVolume > 1.5 {
 		p.MasterVolume = d.MasterVolume

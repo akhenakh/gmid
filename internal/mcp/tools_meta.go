@@ -52,6 +52,9 @@ func (s *Server) status(limit int, verbose bool) (*sdk.CallToolResult, error) {
 			"ready": snap.Ready, "error": snap.Error, "peak": snap.Peak,
 			"outputDelayMs": a.Engine.OutputDelay() * 1000,
 			"soundfont":     a.Engine.SoundFontPath(),
+			"backend":       a.Prefs.AudioBackend,
+			"bufferFrames":  a.Prefs.BufferFrames,
+			"device":        a.Prefs.OutputDevice,
 		}
 	} else {
 		out["audio"] = map[string]any{"ready": false, "error": "engine not started"}
@@ -236,6 +239,14 @@ func (s *Server) registerMeta() {
 			a.ReapplySongView()
 			if a.Lib != nil {
 				a.Lib.SetRoot(a.Prefs.LibraryFolder)
+			}
+			var keys map[string]any
+			_ = json.Unmarshal([]byte(raw), &keys)
+			for _, k := range []string{"audioBackend", "bufferFrames", "outputDevice", "shareMode"} {
+				if _, ok := keys[k]; ok {
+					a.RestartAudio()
+					break
+				}
 			}
 			return jsonResult(a.Prefs)
 		})

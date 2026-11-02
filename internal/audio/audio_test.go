@@ -95,7 +95,7 @@ func TestOutputDevice(t *testing.T) {
 	if err := e.LoadSoundFont(testSoundfont); err != nil {
 		t.Fatalf("soundfont: %v", err)
 	}
-	if err := e.StartOutput("", false, 256); err != nil {
+	if err := e.StartOutput("", "auto", false, 256); err != nil {
 		t.Fatalf("device: %v", err)
 	}
 	defer e.Close()
