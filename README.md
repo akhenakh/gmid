@@ -15,9 +15,10 @@ count-in, hand assignment, step-through, tap tempo, chord/scale explorers,
 playback and note editors, hardware MIDI input, WAV/MP3 export and chord-chart
 PDFs.
 
-Known gaps: Guitar Pro and Capella import; OS-level fullscreen and multi-window;
-per-channel VU meters are shared with the master peak; Starmap is a static
-chord-star view. See `.operator/plans/roadmap.md` for milestones.
+Known gaps: Guitar Pro and Capella import use the local `mscore` command when
+available (not bundled); OS-level fullscreen and multi-window; per-channel VU
+meters are shared with the master peak; Starmap is a static chord-star view.
+See `.operator/plans/roadmap.md` for milestones.
 
 ## Build requirements
 

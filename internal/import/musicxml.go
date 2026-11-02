@@ -27,10 +27,11 @@ func Load(path string) (*song.Song, error) {
 		return smf.ReadFile(path)
 	case ".musicxml", ".xml", ".mxl":
 		return loadMusicXML(path)
-	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx":
-		return nil, fmt.Errorf("guitar Pro import is not available yet")
-	case ".cap", ".capx":
-		return nil, fmt.Errorf("capella import is not available yet")
+	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".cap", ".capx":
+		if s, err := externalScoreConvert(path); err == nil {
+			return s, nil
+		}
+		return nil, fmt.Errorf("guitar pro and capella import need MuseScore installed (mscore command)")
 	default:
 		return nil, fmt.Errorf("unsupported file type: %s", filepath.Ext(path))
 	}

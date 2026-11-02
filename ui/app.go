@@ -190,6 +190,9 @@ func MainColumn(a *app.App) {
 		}
 		RollHeader(a)
 		PianoRoll(a)
+		if a.Edit.Active {
+			VelocityLane(a)
+		}
 		if a.Prefs.LoopRegion {
 			LoopStrip(a)
 		}
