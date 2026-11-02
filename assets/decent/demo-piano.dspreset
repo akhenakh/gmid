@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DecentSampler minVersion="1.0.0">
+<ui width="640" height="240" layoutMode="relative" bgMode="top_left">
+  <tab name="main">
+    <labeled-knob x="40" y="60" width="90" label="Attack" valueType="float" minValue="0" maxValue="0.2" value="0.004">
+      <binding type="amp" level="instrument" position="0" parameter="ENV_ATTACK" />
+    </labeled-knob>
+    <labeled-knob x="150" y="60" width="90" label="Release" valueType="float" minValue="0" maxValue="2" value="0.3">
+      <binding type="amp" level="instrument" position="0" parameter="ENV_RELEASE" />
+    </labeled-knob>
+    <labeled-knob x="260" y="60" width="90" label="Tone" valueType="float" minValue="0" maxValue="1" value="0.85">
+      <binding type="effect" level="instrument" position="0" parameter="FX_FILTER_FREQUENCY" />
+    </labeled-knob>
+  </tab>
+</ui>
+<groups volume="-4dB" attack="0.004" decay="2.4" sustain="0.0" release="0.35">
+  <group ampVelTrack="0.85">
+    <sample path="samples/piano-36.wav" rootNote="36" loNote="21" hiNote="41" />
+    <sample path="samples/piano-48.wav" rootNote="48" loNote="42" hiNote="53" />
+    <sample path="samples/piano-60.wav" rootNote="60" loNote="54" hiNote="65" />
+    <sample path="samples/piano-72.wav" rootNote="72" loNote="66" hiNote="77" />
+    <sample path="samples/piano-84.wav" rootNote="84" loNote="78" hiNote="108" />
+  </group>
+</groups>
+<effects>
+  <effect type="lowpass" frequency="12000" />
+  <effect type="reverb" wetLevel="0.12" />
+</effects>
+</DecentSampler>

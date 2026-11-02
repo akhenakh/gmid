@@ -51,20 +51,21 @@ func (a *App) ExportAudio(variant export.Variant, format string) {
 	s := a.Song
 	a.ExportState = ExportState{Running: true, Message: "Rendering…"}
 	opts := export.Options{
-		Song:       s,
-		Variant:    variant,
-		Format:     format,
-		SoundFont:  a.SoundFontPath(),
-		Library:    a.Prefs.LibraryFolder,
-		Master:     a.Prefs.MasterVolume,
-		Tone:       a.Prefs.MasterTone,
-		Compressor: a.Prefs.MasterCompressor,
-		Speed:      a.Transport.Speed,
-		Transpose:  a.Transport.Transpose,
-		LoopOn:     a.Transport.LoopEnabled,
-		LoopStart:  a.Transport.LoopStart,
-		LoopEnd:    a.Transport.LoopEnd,
-		Mixes:      a.Mixes,
+		Song:         s,
+		Variant:      variant,
+		Format:       format,
+		SoundFont:    a.SoundFontPath(),
+		DecentPreset: a.Prefs.DecentPreset,
+		Library:      a.Prefs.LibraryFolder,
+		Master:       a.Prefs.MasterVolume,
+		Tone:         a.Prefs.MasterTone,
+		Compressor:   a.Prefs.MasterCompressor,
+		Speed:        a.Transport.Speed,
+		Transpose:    a.Transport.Transpose,
+		LoopOn:       a.Transport.LoopEnabled,
+		LoopStart:    a.Transport.LoopStart,
+		LoopEnd:      a.Transport.LoopEnd,
+		Mixes:        a.Mixes,
 	}
 	opts.Progress = func(p float64) {
 		shirei.WithFrameLock(func() { a.ExportState.Progress = p })

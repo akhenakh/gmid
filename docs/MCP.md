@@ -58,6 +58,8 @@ go run ./tools/mcpcheck -tool gmid_screenshot -out /tmp/gmid.png
 | `gmid_keyboard` | Press/release keys, audition chords, clear or lock a chord. |
 | `gmid_ui` | Open/close panels: settings, library, mixer, editors, explorers, presentation, floating keys. |
 | `gmid_settings` / `gmid_settings_set` | Read preferences or merge a partial JSON update. |
+| `gmid_step` | Walk the song note/chord or bar at a time (`next`, `prev`, `next_bar`, `prev_bar`). |
+| `gmid_decent` | Status, load, unload or inspect a DecentSampler `.dspreset`/`.dslibrary`. |
 | `gmid_save_version` | Write a new `_GMID_vN.mid` with an embedded history entry. |
 | `gmid_export_audio` / `gmid_export_status` | Render WAV/MP3 (original, focus or heard). |
 | `gmid_chord_chart` | Generate the chord-chart PDF. |

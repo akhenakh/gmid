@@ -89,6 +89,19 @@ func (e *Engine) renderSpanLocked(outL, outR []float32, from, to float64) {
 				outR[off+i] += e.tmpR[i] * gain
 			}
 		}
+		if e.decent != nil {
+			sl := e.smpL[:frames]
+			sr := e.smpR[:frames]
+			for i := range sl {
+				sl[i], sr[i] = 0, 0
+			}
+			e.decent.Render(sl, sr)
+			gain := float32(e.masterVol)
+			for i := 0; i < frames; i++ {
+				outL[off+i] += sl[i] * gain
+				outR[off+i] += sr[i] * gain
+			}
+		}
 		// Metronome clicks are on their own bus and ignore the master fader.
 		if e.metronomeOn {
 			for e.beatIdx < len(e.beats) && e.beats[e.beatIdx] < t {

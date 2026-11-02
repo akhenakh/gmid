@@ -27,21 +27,22 @@ const (
 
 // Options configures one export.
 type Options struct {
-	Song       *song.Song
-	Variant    Variant
-	Format     string // wav | mp3
-	SoundFont  string
-	Library    string
-	Master     float64
-	Tone       float64
-	Compressor bool
-	Speed      float64
-	Transpose  int
-	LoopOn     bool
-	LoopStart  float64
-	LoopEnd    float64
-	Mixes      map[int]audio.ChannelMix
-	Progress   func(float64)
+	Song         *song.Song
+	Variant      Variant
+	Format       string // wav | mp3
+	SoundFont    string
+	DecentPreset string
+	Library      string
+	Master       float64
+	Tone         float64
+	Compressor   bool
+	Speed        float64
+	Transpose    int
+	LoopOn       bool
+	LoopStart    float64
+	LoopEnd      float64
+	Mixes        map[int]audio.ChannelMix
+	Progress     func(float64)
 }
 
 // Run renders and writes the file, returning its path.
@@ -59,6 +60,11 @@ func Run(o Options) (string, error) {
 	e := audio.New(sr)
 	if err := e.LoadSoundFont(o.SoundFont); err != nil {
 		return "", err
+	}
+	if o.DecentPreset != "" {
+		if err := e.LoadDecentPreset(o.DecentPreset); err != nil {
+			return "", err
+		}
 	}
 	e.SetCountIn(0)
 	e.SetMetronome(false, 0)

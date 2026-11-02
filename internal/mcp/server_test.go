@@ -14,6 +14,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"github.com/akhenakh/gmid/internal/app"
+	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/config"
 	"github.com/akhenakh/gmid/internal/smf"
 )
@@ -28,6 +29,7 @@ func testServer(t *testing.T) (*client.Client, *app.App, func()) {
 	prefs := config.Defaults()
 	prefs.LibraryFolder = t.TempDir()
 	a := app.New(prefs, "../../assets", "")
+	a.Engine = audio.New(48000)
 	s, err := smf.ReadFile(demo)
 	if err != nil {
 		t.Fatal(err)
@@ -138,6 +140,24 @@ func TestMCPNoteEditor(t *testing.T) {
 		t.Fatal("undo failed")
 	}
 	call(t, c, "gmid_note_edit", map[string]any{"action": "exit"})
+}
+
+func TestMCPDecentSampler(t *testing.T) {
+	c, a, closeFn := testServer(t)
+	defer closeFn()
+	res := call(t, c, "gmid_decent", map[string]any{
+		"action": "load", "path": "../../assets/decent/demo-piano.dspreset",
+	})
+	if !contains(res, `"loaded": true`) {
+		t.Fatalf("decent load: %s", res)
+	}
+	if info, ok := a.DecentStatus(); !ok || info.Zones < 5 {
+		t.Fatalf("status: %+v ok=%v", info, ok)
+	}
+	call(t, c, "gmid_decent", map[string]any{"action": "unload"})
+	if _, ok := a.DecentStatus(); ok {
+		t.Fatal("decent not unloaded")
+	}
 }
 
 func TestMCPHarmony(t *testing.T) {

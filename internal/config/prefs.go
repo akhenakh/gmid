@@ -19,8 +19,9 @@ type Prefs struct {
 	ShowDemo           bool   `json:"showDemo"`
 	ExportAudioEnabled bool   `json:"exportAudioEnabled"`
 
-	SoundEngine  string  `json:"soundEngine"` // gm | studio | native
-	SoundFont    string  `json:"soundFont"`   // absolute path or bundled name
+	SoundEngine  string  `json:"soundEngine"`  // gm | studio | native
+	SoundFont    string  `json:"soundFont"`    // absolute path or bundled name
+	DecentPreset string  `json:"decentPreset"` // .dspreset or .dslibrary
 	OutputDevice string  `json:"outputDevice"`
 	ShareMode    string  `json:"shareMode"` // shared | exclusive
 	BufferFrames int     `json:"bufferFrames"`

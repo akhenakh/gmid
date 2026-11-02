@@ -97,6 +97,37 @@ func SettingsWindow(a *app.App) {
 					ToggleSwitch(&a.Prefs.AutoLevel)
 					a.SavePrefs()
 				})
+				Container(Attrs(Gap(3), Pad2(6, 2)), func() {
+					Label("DecentSampler instrument", FontSize(12), TextColorVec(ColText))
+					Caption("A .dspreset or .dslibrary replaces the melodic synth; drums keep the soundfont.")
+					Container(Attrs(FixWidth(470)), func() {
+						TextInput(&a.Prefs.DecentPreset)
+					})
+					Container(Attrs(Row, Gap(6)), func() {
+						if Button(TypFolderOpen, "Load") {
+							if err := a.LoadDecentPreset(a.Prefs.DecentPreset); err != nil {
+								a.Notify("DecentSampler: " + err.Error())
+							}
+						}
+						if CtrlButton(NoIcon, "Demo piano", true) {
+							_ = a.LoadDecentPreset(a.Assets + "/decent/demo-piano.dspreset")
+						}
+						if a.Prefs.DecentPreset != "" {
+							if CtrlButton(TypTimes, "Unload", true) {
+								a.UnloadDecentPreset()
+							}
+						}
+					})
+					if info, ok := a.DecentStatus(); ok {
+						Caption(fmt.Sprintf("%s · %d groups · %d zones · %d buffers",
+							info.Name, info.Groups, info.Zones, info.Buffers))
+						if len(info.Errors) > 0 {
+							Caption(fmt.Sprintf("%d sample errors", len(info.Errors)))
+						}
+					} else {
+						Caption("No DecentSampler instrument loaded")
+					}
+				})
 
 			}
 

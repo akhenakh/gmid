@@ -4,6 +4,8 @@ import (
 	"sort"
 
 	"github.com/akhenakh/gmid/internal/audio"
+	"github.com/akhenakh/gmid/internal/dspreset"
+	"github.com/akhenakh/gmid/internal/sampler"
 	"github.com/akhenakh/gmid/internal/song"
 	"github.com/akhenakh/gmid/internal/theory"
 
@@ -15,6 +17,10 @@ import (
 type Engine interface {
 	Load(s *song.Song)
 	LoadSoundFont(path string) error
+	LoadDecentPreset(path string) error
+	UnloadDecent()
+	DecentInfo() (sampler.Stats, bool)
+	DecentControls() []dspreset.Control
 	StartOutput(device string, exclusive bool, frames int) error
 	Play(from float64)
 	Pause()

@@ -9,6 +9,8 @@ import (
 
 	"github.com/sinshu/go-meltysynth/meltysynth"
 
+	"github.com/akhenakh/gmid/internal/dspreset"
+	"github.com/akhenakh/gmid/internal/sampler"
 	"github.com/akhenakh/gmid/internal/song"
 )
 
@@ -45,6 +47,7 @@ type Engine struct {
 	mu        sync.Mutex
 	synth     *meltysynth.Synthesizer
 	soundfont *meltysynth.SoundFont
+	decent    *sampler.Instrument
 	sfPath    string
 	sfErr     string
 
@@ -89,6 +92,8 @@ type Engine struct {
 	sr      int
 	tmpL    []float32
 	tmpR    []float32
+	smpL    []float32
+	smpR    []float32
 	out     *malgoOutput
 	running atomic.Bool
 }
@@ -107,6 +112,8 @@ func New(sampleRate int) *Engine {
 	}
 	e.tmpL = make([]float32, 4096)
 	e.tmpR = make([]float32, 4096)
+	e.smpL = make([]float32, 4096)
+	e.smpR = make([]float32, 4096)
 	return e
 }
 
@@ -156,6 +163,54 @@ func (e *Engine) SoundFontPath() string {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.sfPath
+}
+
+// LoadDecentPreset loads a DecentSampler .dspreset or .dslibrary and routes
+// melodic notes through it. Drums keep using the soundfont.
+func (e *Engine) LoadDecentPreset(path string) error {
+	p, err := dspreset.Load(path)
+	if err != nil {
+		return err
+	}
+	inst, err := sampler.Load(p, e.sr)
+	if err != nil {
+		return err
+	}
+	e.mu.Lock()
+	e.decent = inst
+	for ch := 0; ch < 16; ch++ {
+		m := e.chMix[ch]
+		e.decent.SetChannelMix(ch, m.Volume, m.Pan)
+	}
+	e.mu.Unlock()
+	return nil
+}
+
+// UnloadDecent removes the DecentSampler instrument.
+func (e *Engine) UnloadDecent() {
+	e.mu.Lock()
+	e.decent = nil
+	e.mu.Unlock()
+}
+
+// DecentInfo reports the loaded instrument.
+func (e *Engine) DecentInfo() (sampler.Stats, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.decent == nil {
+		return sampler.Stats{}, false
+	}
+	return e.decent.Info(), true
+}
+
+// DecentControls returns the loaded instrument's UI controls.
+func (e *Engine) DecentControls() []dspreset.Control {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.decent == nil {
+		return nil
+	}
+	return e.decent.Controls()
 }
 
 // Load installs a song and resets transport state.
@@ -345,6 +400,10 @@ func (e *Engine) SetChannelMix(ch int, volume, pan, chorus, reverb float64) {
 func (e *Engine) NoteOn(ch, key, vel int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if e.decent != nil {
+		e.decent.NoteOn(clampKey(key), clampVel(vel), 15)
+		return
+	}
 	if e.synth == nil {
 		return
 	}
@@ -356,6 +415,10 @@ func (e *Engine) NoteOn(ch, key, vel int) {
 func (e *Engine) NoteOff(ch, key int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if e.decent != nil {
+		e.decent.NoteOff(clampKey(key), 15)
+		return
+	}
 	if e.synth == nil {
 		return
 	}
@@ -366,6 +429,9 @@ func (e *Engine) NoteOff(ch, key int) {
 func (e *Engine) Control(ch, cc, value int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if e.decent != nil {
+		e.decent.Control(15, cc, clampCC(value))
+	}
 	if e.synth == nil {
 		return
 	}
@@ -409,17 +475,22 @@ func (e *Engine) Close() {
 }
 
 func (e *Engine) resetLocked(pos float64) {
-	if e.synth == nil || e.timeline == nil {
+	if (e.synth == nil && e.decent == nil) || e.timeline == nil {
 		return
 	}
-	e.synth.Reset()
+	if e.synth != nil {
+		e.synth.Reset()
+	}
+	if e.decent != nil {
+		e.decent.Reset()
+	}
 	e.applyMixLocked()
 	e.applyStateLocked(pos)
 }
 
 // applyStateLocked rebuilds controller/program state as it was at pos.
 func (e *Engine) applyStateLocked(pos float64) {
-	if e.synth == nil || e.timeline == nil {
+	if (e.synth == nil && e.decent == nil) || e.timeline == nil {
 		return
 	}
 	n := e.timeline.IndexAfter(pos)
@@ -438,7 +509,7 @@ func firstAtOrAfter(a []float64, t float64) int {
 }
 
 func (e *Engine) applyMixLocked() {
-	if e.synth == nil {
+	if e.synth == nil && e.decent == nil {
 		return
 	}
 	for ch := 0; ch < 16; ch++ {
@@ -448,6 +519,12 @@ func (e *Engine) applyMixLocked() {
 
 func (e *Engine) sendMixLocked(ch int) {
 	m := e.chMix[ch]
+	if e.decent != nil {
+		e.decent.SetChannelMix(ch, m.Volume, m.Pan)
+	}
+	if e.synth == nil {
+		return
+	}
 	e.synth.ProcessMidiMessage(int32(ch), 0xB0, 10, int32(math.Round(clamp01(m.Pan)*127)))
 	e.synth.ProcessMidiMessage(int32(ch), 0xB0, 91, int32(math.Round(clamp01(m.Reverb)*127)))
 	e.synth.ProcessMidiMessage(int32(ch), 0xB0, 93, int32(math.Round(clamp01(m.Chorus)*127)))
@@ -461,11 +538,14 @@ func (e *Engine) sendMixLocked(ch int) {
 }
 
 func (e *Engine) dispatchLocked(ev Event) {
-	if e.synth == nil {
+	if e.synth == nil && e.decent == nil {
 		return
 	}
 	switch ev.Kind {
 	case EvProgram:
+		if e.synth == nil {
+			return
+		}
 		bank := ev.B
 		if bank >= 0 {
 			e.synth.ProcessMidiMessage(int32(ev.Channel), 0xB0, 0, int32(bank/128))
@@ -478,22 +558,41 @@ func (e *Engine) dispatchLocked(ev Event) {
 			m := e.chMix[ev.Channel]
 			val = int(math.Round(clamp01(float64(val)*m.Volume/127) * 127))
 		}
-		e.synth.ProcessMidiMessage(int32(ev.Channel), 0xB0, int32(ev.A), int32(clampCC(val)))
+		if e.decent != nil {
+			e.decent.Control(ev.Channel, ev.A, clampCC(ev.B))
+		}
+		if e.synth != nil {
+			e.synth.ProcessMidiMessage(int32(ev.Channel), 0xB0, int32(ev.A), int32(clampCC(val)))
+		}
 	case EvNoteOn:
 		if ev.Track >= 0 && !e.audible[ev.Track] {
 			return
 		}
 		key := ev.A
-		if !e.isDrum(ev.Track) {
+		drum := e.isDrum(ev.Track)
+		if !drum {
 			key += e.transpose
 		}
-		e.synth.NoteOn(int32(ev.Channel), int32(clampKey(key)), int32(clampVel(ev.B)))
+		if e.decent != nil && !drum {
+			e.decent.NoteOn(clampKey(key), clampVel(ev.B), ev.Channel)
+			return
+		}
+		if e.synth != nil {
+			e.synth.NoteOn(int32(ev.Channel), int32(clampKey(key)), int32(clampVel(ev.B)))
+		}
 	case EvNoteOff:
 		key := ev.A
-		if !e.isDrum(ev.Track) {
+		drum := e.isDrum(ev.Track)
+		if !drum {
 			key += e.transpose
 		}
-		e.synth.NoteOff(int32(ev.Channel), int32(clampKey(key)))
+		if e.decent != nil && !drum {
+			e.decent.NoteOff(clampKey(key), ev.Channel)
+			return
+		}
+		if e.synth != nil {
+			e.synth.NoteOff(int32(ev.Channel), int32(clampKey(key)))
+		}
 	}
 }
 

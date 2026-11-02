@@ -42,6 +42,7 @@ Times are song seconds unless a tool says otherwise; ticks are MIDI ticks at the
 	s.registerLibrary()
 	s.registerHarmony()
 	s.registerUI()
+	s.registerDecent()
 	return s
 }
 

@@ -130,6 +130,10 @@ func (e *Engine) onAudio(pOutput []byte, framecount uint32) {
 		e.tmpL = make([]float32, n)
 		e.tmpR = make([]float32, n)
 	}
+	if len(e.smpL) < n {
+		e.smpL = make([]float32, n)
+		e.smpR = make([]float32, n)
+	}
 	l := e.tmpL[:n]
 	r := e.tmpR[:n]
 	for i := range l {
@@ -148,6 +152,10 @@ func (e *Engine) RenderOffline(frames int) ([]float32, []float32) {
 	l := make([]float32, frames)
 	r := make([]float32, frames)
 	e.mu.Lock()
+	if len(e.smpL) < frames {
+		e.smpL = make([]float32, frames)
+		e.smpR = make([]float32, frames)
+	}
 	e.renderLocked(l, r)
 	e.mu.Unlock()
 	return l, r

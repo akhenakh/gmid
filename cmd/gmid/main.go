@@ -91,7 +91,7 @@ func main() {
 		return
 	}
 
-	shireiapp.SetupWindow("gmid", 1440, 900)
+	shireiapp.SetupWindow("gmid", *width, *height)
 	shireiapp.SetupDrive()
 	shireiapp.Run(func() { ui.Root(a) })
 	if engine != nil {
@@ -126,6 +126,11 @@ func loadSoundFont(a *app.App, engine *audio.Engine, prefs config.Prefs) {
 				engine.Play(snap.Time)
 			}
 			a.PushAudioState()
+		}
+		if a.Prefs.DecentPreset != "" {
+			if err := engine.LoadDecentPreset(a.Prefs.DecentPreset); err != nil {
+				a.Notify("DecentSampler: " + err.Error())
+			}
 		}
 	})
 	RequestNextFrame()

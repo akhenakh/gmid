@@ -15,6 +15,12 @@ count-in, hand assignment, step-through, tap tempo, chord/scale explorers,
 playback and note editors, hardware MIDI input, WAV/MP3 export and chord-chart
 PDFs.
 
+DecentSampler instruments (`*.dspreset`, `*.dslibrary`) play through a pure-Go
+sampler: key/velocity zones, round robins, loops, amp envelopes, low-pass
+filters, CC filters and per-channel mix. Melodic tracks use the sampler; drums
+keep the soundfont. Load one from Settings → Audio, or with the `gmid_decent`
+MCP tool; a small demo piano ships in `assets/decent/`.
+
 Known gaps: Guitar Pro and Capella import use the local `mscore` command when
 available (not bundled); OS-level fullscreen and multi-window; per-channel VU
 meters are shared with the master peak; Starmap is a static chord-star view.
