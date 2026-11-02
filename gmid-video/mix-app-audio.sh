@@ -5,9 +5,9 @@
 #
 #   ./mix-app-audio.sh [music.wav]
 #
-# Re-run after a fresh vc_render. The first run saves the unmixed cut as
-# render/gmid-video-silent.mkv and always mixes from that copy, so re-running
-# does not double the music.
+# Re-run after a fresh vc_render. The script probes the performance scene: a
+# silent cut is copied to render/gmid-video-silent.mkv, a mixed cut is re-mixed
+# from that preserved copy, so the music is never doubled.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -19,10 +19,6 @@ if [ ! -f "$MUSIC" ]; then
   echo "missing $MUSIC — export the song with the demo piano first" >&2
   exit 1
 fi
-# A fresh render has app sound nowhere; preserve it before the first mix.
-if [ ! -f "$SILENT" ]; then
-  cp "$OUT" "$SILENT"
-fi
 
 read -r START DUR < <(awk '
   /id: decent-play/ {f=1}
@@ -31,8 +27,25 @@ read -r START DUR < <(awk '
 ' render/manifest.yaml)
 [ -n "${START:-}" ] || { echo "decent-play not found in manifest" >&2; exit 1; }
 
+# A fresh vc_render leaves the performance scene silent; a mixed cut is loud
+# there. Detect which one we have so re-running never doubles the music and a
+# re-render refreshes the preserved silent copy automatically.
+PROBE=$(awk -v s="$START" 'BEGIN{printf "%.2f", s+2}')
+LEVEL=$(ffmpeg -v info -ss "$PROBE" -t 3 -i "$OUT" -af volumedetect -f null - 2>&1 |
+  sed -n 's/.*mean_volume: \(-\{0,1\}[0-9.]*\) dB.*/\1/p' | head -1)
+if [ -z "${LEVEL:-}" ]; then
+  echo "could not probe $OUT" >&2
+  exit 1
+fi
+if awk -v l="$LEVEL" 'BEGIN{exit !(l < -60)}'; then
+  cp "$OUT" "$SILENT" # fresh render
+elif [ ! -f "$SILENT" ]; then
+  echo "$OUT already has audio but $SILENT is missing; render again first" >&2
+  exit 1
+fi
+
 # Video time where the recorded song is at 0. Measured from the transport clock
-# in the clip (at clip 15s the clock read 14.32s); recalibrate after recording.
+# in the clip (at clip 15s the clock read 14.31s); recalibrate after recording.
 OFFSET=${OFFSET:-0.69}
 VOLUME=${VOLUME:-0.8}
 TRIM=$(awk -v o="$OFFSET" 'BEGIN{print (o<0 ? -o : 0)}')
