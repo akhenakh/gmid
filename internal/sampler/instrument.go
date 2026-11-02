@@ -30,6 +30,8 @@ type Instrument struct {
 	refPeak    float64
 	now        float64
 	onAt       [128]float64
+	fx         *fxChain
+	dryL, dryR []float32
 }
 
 type zone struct {
@@ -105,6 +107,7 @@ func Load(p *dspreset.Preset, sampleRate int) (*Instrument, error) {
 	}
 	inst := &Instrument{preset: p, sr: sampleRate, gain: 1, gainAdjust: 1}
 	inst.voices = make([]*voice, 0, 64)
+	inst.fx = newFXChain(p.Effects, sampleRate)
 	buffers := map[string]*Buffer{}
 	inst.groups = make([]*groupState, len(p.Groups))
 	for gi, g := range p.Groups {
@@ -611,10 +614,13 @@ func (i *Instrument) SetChannelMix(ch int, volume, pan float64) {
 	i.mu.Unlock()
 }
 
-// Reset stops all voices.
+// Reset stops all voices and clears effect tails.
 func (i *Instrument) Reset() {
 	i.mu.Lock()
 	i.voices = nil
+	if i.fx != nil {
+		i.fx.reset()
+	}
 	i.mu.Unlock()
 }
 
@@ -622,15 +628,31 @@ func (i *Instrument) Reset() {
 func (i *Instrument) Render(l, r []float32) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+	n := len(l)
+	if len(i.dryL) < n {
+		i.dryL = make([]float32, n)
+		i.dryR = make([]float32, n)
+	}
+	dl, dr := i.dryL[:n], i.dryR[:n]
+	for j := range dl {
+		dl[j], dr[j] = 0, 0
+	}
 	out := i.voices[:0]
 	for _, v := range i.voices {
-		i.renderVoice(v, l, r)
+		i.renderVoice(v, dl, dr)
 		if !v.finished {
 			out = append(out, v)
 		}
 	}
 	i.voices = out
-	i.now += float64(len(l)) / float64(i.sr)
+	if i.fx != nil {
+		i.fx.process(dl, dr)
+	}
+	for j := 0; j < n; j++ {
+		l[j] += dl[j]
+		r[j] += dr[j]
+	}
+	i.now += float64(n) / float64(i.sr)
 }
 
 func (i *Instrument) renderVoice(v *voice, l, r []float32) {

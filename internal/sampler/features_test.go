@@ -226,3 +226,56 @@ func TestReleaseTriggerDecay(t *testing.T) {
 		t.Fatalf("release gain %.3f, want %.3f", got, want)
 	}
 }
+
+func renderPeak(t *testing.T, xml string, frames int) float64 {
+	t.Helper()
+	inst, _ := testInstrument(t, xml)
+	inst.NoteOn(60, 100, 0)
+	l := make([]float32, frames)
+	inst.Render(l, make([]float32, frames))
+	peak := 0.0
+	for _, v := range l {
+		peak = math.Max(peak, math.Abs(float64(v)))
+	}
+	return peak
+}
+
+func TestGainEffect(t *testing.T) {
+	body := `<groups ampEnvEnabled="false"><group><sample path="SAMPLE" rootNote="60" /></group></groups>`
+	plain := renderPeak(t, body, 4800)
+	cut := renderPeak(t, body+`<effects><effect type="gain" level="-6" /></effects>`, 4800)
+	if ratio := cut / plain; math.Abs(ratio-0.5) > 0.02 {
+		t.Fatalf("gain ratio = %.3f, want 0.5", ratio)
+	}
+}
+
+func TestFilterEffects(t *testing.T) {
+	body := `<groups ampEnvEnabled="false"><group><sample path="SAMPLE" rootNote="60" /></group></groups>`
+	plain := renderPeak(t, body, 4800)
+	lp := renderPeak(t, body+`<effects><effect type="lowpass" frequency="8000" resonance="0.7" /></effects>`, 4800)
+	hp := renderPeak(t, body+`<effects><effect type="highpass" frequency="8000" resonance="0.7" /></effects>`, 4800)
+	if plain-lp > 0.05 {
+		t.Fatalf("lowpass changed a 440 Hz tone: %.3f vs %.3f", lp, plain)
+	}
+	if hp > plain*0.2 {
+		t.Fatalf("highpass did not attenuate: %.3f vs %.3f", hp, plain)
+	}
+}
+
+func TestReverbTail(t *testing.T) {
+	inst, _ := testInstrument(t, `<groups ampEnvEnabled="false"><group><sample path="SAMPLE" rootNote="60" end="2400" /></group></groups>
+		<effects><effect type="reverb" roomSize="0.9" damping="0.2" wetLevel="1" /></effects>`)
+	inst.NoteOn(60, 100, 0)
+	frames := 48000
+	l := make([]float32, frames)
+	inst.Render(l, make([]float32, frames))
+	var sum float64
+	start := frames - 12000
+	for i := start; i < frames; i++ {
+		sum += float64(l[i]) * float64(l[i])
+	}
+	rms := math.Sqrt(sum / float64(frames-start))
+	if rms < 1e-4 {
+		t.Fatalf("no reverb tail after the sample ended (rms %g)", rms)
+	}
+}
