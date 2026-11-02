@@ -50,44 +50,54 @@ type Group struct {
 
 // Sample is one mapped sample zone.
 type Sample struct {
-	Path              string
-	Root              int
-	LoNote            int
-	HiNote            int
-	LoVel             int
-	HiVel             int
-	Volume            float64
-	Pan               float64
-	Tuning            float64
-	PitchKeyTrack     float64
-	Start             int
-	End               int
-	LoopEnabled       bool
-	LoopStart         int
-	LoopEnd           int
-	LoopDuringRelease bool
-	Trigger           string
-	SeqMode           string
-	SeqPosition       int
-	SeqLength         int
-	Amp               Envelope
-	FilterCutoff      float64
-	FilterQ           float64
-	Tags              []string
-	CCFilters         map[int][2]int
-	Delay             float64
-	GroupIndex        int
+	Path                  string
+	Root                  int
+	LoNote                int
+	HiNote                int
+	LoVel                 int
+	HiVel                 int
+	Volume                float64
+	Pan                   float64
+	Tuning                float64
+	PitchKeyTrack         float64
+	Start                 int
+	End                   int
+	LoopEnabled           bool
+	LoopStart             int
+	LoopEnd               int
+	LoopDuringRelease     bool
+	LoopCrossfade         int
+	LoopCrossfadeMode     string
+	Trigger               string
+	SeqMode               string
+	SeqPosition           int
+	SeqLength             int
+	Amp                   Envelope
+	FilterCutoff          float64
+	FilterQ               float64
+	Tags                  []string
+	CCFilters             map[int][2]int
+	OnCCFilters           map[int][2]int
+	Delay                 float64
+	DelayUnit             string
+	TuningIgnoresKeyTrack bool
+	ReleaseDecayDB        float64 // dB per second of held time
+	ReleaseDecayLinear    float64 // gain factor per second of held time
+	GroupIndex            int
 }
 
 // Envelope is an amplitude envelope.
 type Envelope struct {
-	Enabled bool
-	Delay   float64
-	Attack  float64
-	Hold    float64
-	Decay   float64
-	Sustain float64
-	Release float64
+	Enabled      bool
+	Delay        float64
+	Attack       float64
+	Hold         float64
+	Decay        float64
+	Sustain      float64
+	Release      float64
+	AttackCurve  float64 // -100 logarithmic … 0 linear … 100 exponential
+	DecayCurve   float64
+	ReleaseCurve float64
 }
 
 // Effect is one global effect.
@@ -160,7 +170,8 @@ func Load(path string) (*Preset, error) {
 	globalPan := attrFloat(groupDefaults, "globalPan", 0)
 	globalTuning := attrFloat(groupDefaults, "globalTuning", 0)
 	groupPitchTrack := attrFloat(groupDefaults, "pitchKeyTrack", 1)
-	groupEnv := envelopeFrom(groupDefaults, Envelope{Enabled: true, Sustain: 1, Release: 0.1})
+	groupEnv := envelopeFrom(groupDefaults, Envelope{Enabled: true, Sustain: 1, Release: 0.1,
+		AttackCurve: -100, DecayCurve: 100, ReleaseCurve: 100})
 	groupFilter := attrFloat(groupDefaults, "filterCutoff", 0)
 	groupQ := attrFloat(groupDefaults, "filterResonance", 0)
 	groupSeqMode := groupDefaults["seqMode"]
@@ -241,7 +252,9 @@ func parseSample(s *node, grp *Group, groupAttrs, groupsAttrs map[string]string,
 		LoopEnd:           attrInt(s.Attrs, "loopEnd", -1),
 		LoopEnabled:       attrBool(s.Attrs, "loopEnabled", s.Attrs["loopStart"] != "" || s.Attrs["loopEnd"] != ""),
 		LoopDuringRelease: attrBool(s.Attrs, "loopDuringRelease", true),
-		Trigger:           pick(s.Attrs, "trigger", pick(groupAttrs, "trigger", "attack")),
+		LoopCrossfade:     attrInt(s.Attrs, "loopCrossfade", attrInt(groupAttrs, "loopCrossfade", attrInt(groupsAttrs, "loopCrossfade", 0))),
+		LoopCrossfadeMode: pick(s.Attrs, "loopCrossfadeMode", pick(groupAttrs, "loopCrossfadeMode", pick(groupsAttrs, "loopCrossfadeMode", "equal_power"))),
+		Trigger:           pick(s.Attrs, "trigger", pick(groupAttrs, "trigger", pick(groupsAttrs, "trigger", "attack"))),
 		SeqMode:           pick(s.Attrs, "seqMode", grp.SeqMode),
 		SeqPosition:       attrInt(s.Attrs, "seqPosition", 1),
 		SeqLength:         attrInt(s.Attrs, "seqLength", grp.SeqLength),
@@ -249,12 +262,17 @@ func parseSample(s *node, grp *Group, groupAttrs, groupsAttrs map[string]string,
 		FilterCutoff:      attrFloat(s.Attrs, "filterCutoff", grp.FilterCutoff),
 		FilterQ:           attrFloat(s.Attrs, "filterResonance", grp.FilterQ),
 		Delay:             attrFloat(s.Attrs, "delay", 0),
-		GroupIndex:        grp.Index,
+		DelayUnit:         pick(s.Attrs, "delayUnit", pick(groupAttrs, "delayUnit", pick(groupsAttrs, "delayUnit", "seconds"))),
+		TuningIgnoresKeyTrack: attrBool(s.Attrs, "tuningIgnoresKeyTrack",
+			attrBool(groupAttrs, "tuningIgnoresKeyTrack", attrBool(groupsAttrs, "tuningIgnoresKeyTrack", false))),
+		GroupIndex: grp.Index,
 	}
+	smp.ReleaseDecayDB, smp.ReleaseDecayLinear = releaseDecay(s.Attrs, groupAttrs, groupsAttrs)
 	if tags := s.Attrs["tags"]; tags != "" {
 		smp.Tags = strings.Split(tags, ",")
 	}
-	smp.CCFilters = ccFilters(s.Attrs, groupAttrs, groupsAttrs)
+	smp.CCFilters = ccRangeFilters("loCC", "hiCC", s.Attrs, groupAttrs, groupsAttrs)
+	smp.OnCCFilters = ccRangeFilters("onLoCC", "onHiCC", s.Attrs, groupAttrs, groupsAttrs)
 	return smp
 }
 
@@ -295,21 +313,53 @@ func envelopeFrom(attrs map[string]string, base Envelope) Envelope {
 	e.Decay = attrFloat(attrs, "decay", attrFloat(attrs, "ampEnvDecay", e.Decay))
 	e.Sustain = attrFloat(attrs, "sustain", attrFloat(attrs, "ampEnvSustain", e.Sustain))
 	e.Release = attrFloat(attrs, "release", attrFloat(attrs, "ampEnvRelease", e.Release))
+	e.AttackCurve = clampCurve(attrFloat(attrs, "attackCurve", e.AttackCurve))
+	e.DecayCurve = clampCurve(attrFloat(attrs, "decayCurve", e.DecayCurve))
+	e.ReleaseCurve = clampCurve(attrFloat(attrs, "releaseCurve", e.ReleaseCurve))
 	return e
 }
 
-func ccFilters(attrs ...map[string]string) map[int][2]int {
+func clampCurve(v float64) float64 {
+	if v < -100 {
+		return -100
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
+}
+
+// releaseDecay parses releaseTriggerDecay, most specific first. A "dB" suffix
+// yields dB per held second; a bare number is a linear factor per held second.
+func releaseDecay(attrs ...map[string]string) (db, linear float64) {
+	for _, a := range attrs {
+		v, ok := a["releaseTriggerDecay"]
+		if !ok || strings.TrimSpace(v) == "" {
+			continue
+		}
+		v = strings.TrimSpace(v)
+		if strings.HasSuffix(strings.ToLower(v), "db") {
+			db = math.Abs(parseFloat(strings.TrimSpace(v[:len(v)-2]), 0))
+		} else {
+			linear = parseFloat(v, 0)
+		}
+		return db, linear
+	}
+	return 0, 0
+}
+
+func ccRangeFilters(loPrefix, hiPrefix string, attrs ...map[string]string) map[int][2]int {
 	out := map[int][2]int{}
 	for _, a := range attrs {
 		for k, v := range a {
-			if !strings.HasPrefix(k, "loCC") {
+			if !strings.HasPrefix(k, loPrefix) {
 				continue
 			}
-			num, err := strconv.Atoi(strings.TrimPrefix(k, "loCC"))
+			num, err := strconv.Atoi(strings.TrimPrefix(k, loPrefix))
 			if err != nil {
 				continue
 			}
-			hiKey := "hiCC" + strconv.Itoa(num)
+			hiKey := hiPrefix + strconv.Itoa(num)
 			hi := 127
 			if h, ok := a[hiKey]; ok {
 				hi = int(parseFloat(h, 127))

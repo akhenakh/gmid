@@ -28,17 +28,25 @@ type Instrument struct {
 	gain       float64
 	gainAdjust float64
 	refPeak    float64
+	now        float64
+	onAt       [128]float64
 }
 
 type zone struct {
-	group  int
-	sample *dspreset.Sample
-	buf    *Buffer
-	gain   float64
-	pan    float64
-	rate   float64
-	cutoff float64
-	q      float64
+	group       int
+	sample      *dspreset.Sample
+	buf         *Buffer
+	gain        float64
+	pan         float64
+	rate        float64
+	cutoff      float64
+	q           float64
+	delayFrames int
+	loopXF      int
+	loopXFMode  string
+	releaseDB   float64
+	releaseLin  float64
+	onCC        map[int][2]int
 }
 
 type groupState struct {
@@ -79,6 +87,9 @@ type voice struct {
 	env          float64
 	stage        int // 0 delay, 1 attack, 2 hold, 3 decay, 4 sustain, 5 release
 	stageT       float64
+	delay        int
+	xf           int
+	xfMode       string
 	// state-variable filter
 	lowL, bandL, lowR, bandR float32
 	f, q                     float32
@@ -114,14 +125,31 @@ func Load(p *dspreset.Preset, sampleRate int) (*Instrument, error) {
 				buffers[s.Path] = buf
 			}
 			z := &zone{
-				group:  gi,
-				sample: s,
-				buf:    buf,
-				gain:   p.Volume * g.Volume * s.Volume,
-				pan:    s.Pan,
-				rate:   float64(buf.Rate) / float64(sampleRate),
-				cutoff: s.FilterCutoff,
-				q:      s.FilterQ,
+				group:      gi,
+				sample:     s,
+				buf:        buf,
+				gain:       p.Volume * g.Volume * s.Volume,
+				pan:        s.Pan,
+				rate:       float64(buf.Rate) / float64(sampleRate),
+				cutoff:     s.FilterCutoff,
+				q:          s.FilterQ,
+				loopXF:     s.LoopCrossfade,
+				loopXFMode: s.LoopCrossfadeMode,
+				releaseDB:  s.ReleaseDecayDB,
+				releaseLin: s.ReleaseDecayLinear,
+				onCC:       s.OnCCFilters,
+			}
+			switch s.DelayUnit {
+			case "samples":
+				z.delayFrames = int(s.Delay)
+			case "beats":
+				// No host tempo reaches the sampler; assume 120 BPM.
+				z.delayFrames = int(s.Delay * 0.5 * float64(sampleRate))
+			default:
+				z.delayFrames = int(s.Delay * float64(sampleRate))
+			}
+			if z.delayFrames < 0 {
+				z.delayFrames = 0
 			}
 			if z.cutoff <= 0 || z.cutoff > float64(sampleRate)/2 {
 				z.cutoff = 0
@@ -210,32 +238,50 @@ func (i *Instrument) NoteOn(key, vel, ch int) {
 		return
 	}
 	i.lastNote = key
+	i.onAt[key] = i.now
+
+	busy := false
+	for _, v := range i.voices {
+		if !v.finished {
+			busy = true
+			break
+		}
+	}
 
 	// Group-level round robins: presets like the Steinway Grand split their
 	// round robins into separate groups (seqPosition 1..N). Only the group at
 	// the current position plays, otherwise every take is layered and the
 	// resulting comb filtering makes the instrument sound thin and quiet.
-	rrGroups, maxPos := 0, 0
-	rrMode := ""
+	var rrPositions []int
+	seenPos := map[int]bool{}
+	rrMode, rrSeqLen := "", 0
 	for _, g := range i.preset.Groups {
 		if !g.Enabled || !isRRMode(g.SeqMode) {
 			continue
 		}
-		if rrGroups == 0 {
+		if rrMode == "" {
 			rrMode = g.SeqMode
 		}
-		rrGroups++
-		if g.SeqPosition > maxPos {
-			maxPos = g.SeqPosition
+		if !seenPos[g.SeqPosition] {
+			seenPos[g.SeqPosition] = true
+			rrPositions = append(rrPositions, g.SeqPosition)
+		}
+		if rrSeqLen == 0 {
+			rrSeqLen = g.SeqLength
 		}
 	}
+	sort.Ints(rrPositions)
 	rrPos := 0
-	if rrGroups > 1 && maxPos > 0 {
+	if len(rrPositions) > 1 {
+		n := len(rrPositions)
+		if rrSeqLen > 0 && rrSeqLen < n {
+			n = rrSeqLen
+		}
 		if rrMode == "random" || rrMode == "true_random" {
-			rrPos = rand.Intn(maxPos) + 1
+			rrPos = rrPositions[rand.Intn(n)]
 		} else {
-			i.rrIndex = i.rrIndex%maxPos + 1
-			rrPos = i.rrIndex
+			rrPos = rrPositions[i.rrIndex%n]
+			i.rrIndex++
 		}
 	}
 
@@ -255,7 +301,20 @@ func (i *Instrument) NoteOn(key, vel, ch int) {
 			if key < s.LoNote || key > s.HiNote || vel < s.LoVel || vel > s.HiVel {
 				continue
 			}
-			if s.Trigger == "release" {
+			switch s.Trigger {
+			case "release":
+				continue
+			case "first":
+				if busy {
+					continue
+				}
+			case "legato":
+				if !busy {
+					continue
+				}
+			}
+			// onLoCC/onHiCC zones are triggered by controller moves, not notes.
+			if len(s.OnCCFilters) > 0 {
 				continue
 			}
 			ok := true
@@ -277,20 +336,55 @@ func (i *Instrument) NoteOn(key, vel, ch int) {
 			continue
 		}
 		// Sample-level round robins: only choose between zones that actually
-		// declare distinct seqPosition values.
+		// declare distinct seqPosition values, and cycle through the declared
+		// positions in order.
 		if i.groups[gi] != nil && isRRMode(g.SeqMode) && hasDistinctSeqPositions(matches) {
 			gs := i.groups[gi]
 			if g.SeqMode == "random" || g.SeqMode == "true_random" {
 				matches = []*zone{matches[rand.Intn(len(matches))]}
 			} else {
-				matches = []*zone{matches[gs.rr%len(matches)]}
+				positions := uniqueSeqPositions(matches)
+				n := len(positions)
+				if sl := matches[0].sample.SeqLength; sl > 0 && sl < n {
+					n = sl
+				}
+				pos := positions[gs.rr%n]
 				gs.rr++
+				filtered := matches[:0]
+				for _, z := range matches {
+					if z.sample.SeqPosition == pos {
+						filtered = append(filtered, z)
+					}
+				}
+				matches = filtered
 			}
 		}
 		for _, z := range matches {
-			i.startVoice(z, key, vel, ch)
+			i.startVoice(z, key, vel, ch, 1)
 		}
 	}
+}
+
+// ccMatches reports whether a controller value falls in the zone's range.
+func ccMatches(filters map[int][2]int, cc, val int) bool {
+	rng, ok := filters[cc]
+	if !ok {
+		return false
+	}
+	return val >= rng[0] && val <= rng[1]
+}
+
+func uniqueSeqPositions(zones []*zone) []int {
+	seen := map[int]bool{}
+	var out []int
+	for _, z := range zones {
+		if !seen[z.sample.SeqPosition] {
+			seen[z.sample.SeqPosition] = true
+			out = append(out, z.sample.SeqPosition)
+		}
+	}
+	sort.Ints(out)
+	return out
 }
 
 func isRRMode(mode string) bool {
@@ -346,11 +440,16 @@ func hasDistinctSeqPositions(zones []*zone) bool {
 	return false
 }
 
-func (i *Instrument) startVoice(z *zone, key, vel, ch int) {
+func (i *Instrument) startVoice(z *zone, key, vel, ch int, gainScale float64) {
 	s := z.sample
-	semis := (float64(key-s.Root))*s.PitchKeyTrack + s.Tuning
+	var semis float64
+	if s.TuningIgnoresKeyTrack {
+		semis = float64(key-s.Root)*s.PitchKeyTrack + s.Tuning
+	} else {
+		semis = (float64(key-s.Root) + s.Tuning) * s.PitchKeyTrack
+	}
 	step := math.Pow(2, semis/12) * z.rate
-	gain := z.gain
+	gain := z.gain * gainScale
 	if s.Amp.Enabled {
 		ampTrack := 1.0
 		if gi := z.group; gi < len(i.preset.Groups) {
@@ -366,7 +465,7 @@ func (i *Instrument) startVoice(z *zone, key, vel, ch int) {
 		panL: float32(math.Cos(theta)), panR: float32(math.Sin(theta)),
 		key: key, ch: ch, start: s.Start, end: s.End,
 		loop: s.LoopEnabled, loopStart: s.LoopStart, loopEnd: s.LoopEnd,
-		env: 0,
+		env: 0, delay: z.delayFrames, xfMode: z.loopXFMode,
 	}
 	if v.end <= 0 || v.end > len(z.buf.L) {
 		v.end = len(z.buf.L)
@@ -383,11 +482,23 @@ func (i *Instrument) startVoice(z *zone, key, vel, ch int) {
 		}
 		if v.loopEnd <= v.loopStart || v.loopEnd > len(z.buf.L) {
 			v.loop = false
+		} else {
+			v.xf = z.loopXF
+			if v.xf > v.loopEnd-v.loopStart {
+				v.xf = v.loopEnd - v.loopStart
+			}
+			if v.xf < 0 {
+				v.xf = 0
+			}
 		}
 	}
 	v.pos = float64(v.start)
 	if s.Amp.Enabled {
-		v.stage = 0
+		if s.Amp.Delay > 0 {
+			v.stage = 0
+		} else {
+			v.stage = 1
+		}
 	} else {
 		v.env = 1
 		v.stage = 4
@@ -425,12 +536,23 @@ func (i *Instrument) NoteOff(key, ch int) {
 		}
 	}
 	// Release-trigger samples.
+	held := i.now - i.onAt[key]
+	if held < 0 {
+		held = 0
+	}
 	for _, z := range i.zones {
 		s := z.sample
 		if s.Trigger != "release" || key < s.LoNote || key > s.HiNote {
 			continue
 		}
-		i.startVoice(z, key, 100, ch)
+		scale := 1.0
+		switch {
+		case z.releaseDB > 0:
+			scale = math.Pow(10, -z.releaseDB*held/20)
+		case z.releaseLin > 0:
+			scale = math.Pow(z.releaseLin, held)
+		}
+		i.startVoice(z, key, 100, ch, scale)
 	}
 }
 
@@ -443,6 +565,12 @@ func (i *Instrument) Control(ch, cc, val int) {
 	defer i.mu.Unlock()
 	if cc >= 0 && cc < 128 {
 		i.ch[ch].cc[cc] = val
+	}
+	for _, z := range i.zones {
+		if len(z.onCC) == 0 || !ccMatches(z.onCC, cc, val) {
+			continue
+		}
+		i.startVoice(z, z.sample.Root, 100, ch, 1)
 	}
 	switch cc {
 	case 7:
@@ -502,6 +630,7 @@ func (i *Instrument) Render(l, r []float32) {
 		}
 	}
 	i.voices = out
+	i.now += float64(len(l)) / float64(i.sr)
 }
 
 func (i *Instrument) renderVoice(v *voice, l, r []float32) {
@@ -514,6 +643,10 @@ func (i *Instrument) renderVoice(v *voice, l, r []float32) {
 		return
 	}
 	for j := 0; j < n; j++ {
+		if v.delay > 0 {
+			v.delay--
+			continue
+		}
 		if v.pos >= float64(v.end) {
 			v.finished = true
 			return
@@ -526,7 +659,12 @@ func (i *Instrument) renderVoice(v *voice, l, r []float32) {
 		}
 		// loop
 		if v.loop && v.pos >= float64(v.loopEnd) {
-			v.pos = float64(v.loopStart) + math.Mod(v.pos-float64(v.loopStart), float64(v.loopEnd-v.loopStart))
+			if v.xf > 0 && v.loopEnd-v.loopStart > v.xf {
+				span := float64(v.loopEnd - v.loopStart - v.xf)
+				v.pos = float64(v.loopStart+v.xf) + math.Mod(v.pos-float64(v.loopStart+v.xf), span)
+			} else {
+				v.pos = float64(v.loopStart) + math.Mod(v.pos-float64(v.loopStart), float64(v.loopEnd-v.loopStart))
+			}
 		}
 		idx := int(v.pos)
 		if idx < 0 || idx+1 >= len(buf.L) {
@@ -536,6 +674,26 @@ func (i *Instrument) renderVoice(v *voice, l, r []float32) {
 		frac := float32(v.pos - float64(idx))
 		l0 := buf.L[idx]*(1-frac) + buf.L[idx+1]*frac
 		r0 := buf.R[idx]*(1-frac) + buf.R[idx+1]*frac
+		// Loop crossfade: during the last xf frames before loopEnd, fade in the
+		// loop-start region while the tail fades out; the wrap then lands at
+		// loopStart+xf, so the splice is continuous.
+		if v.loop && v.xf > 0 && v.pos >= float64(v.loopEnd-v.xf) && v.pos < float64(v.loopEnd) {
+			d := v.pos - float64(v.loopEnd-v.xf)
+			fi := v.loopStart + int(d)
+			if fi >= v.loopStart && fi+1 < len(buf.L) {
+				fl := buf.L[fi]*(1-frac) + buf.L[fi+1]*frac
+				fr := buf.R[fi]*(1-frac) + buf.R[fi+1]*frac
+				w := float32(d / float64(v.xf))
+				var a, b float32
+				if v.xfMode == "linear" {
+					a, b = 1-w, w
+				} else {
+					a, b = float32(math.Cos(float64(w)*math.Pi/2)), float32(math.Sin(float64(w)*math.Pi/2))
+				}
+				l0 = l0*a + fl*b
+				r0 = r0*a + fr*b
+			}
+		}
 		// state-variable low-pass
 		if v.f > 0 {
 			v.lowL += v.f * v.bandL
@@ -565,7 +723,8 @@ func (i *Instrument) renderVoice(v *voice, l, r []float32) {
 }
 
 // advanceEnvelope steps the amp envelope for one sample. It reports true when
-// the voice has finished releasing.
+// the voice has finished releasing. Stage progress is shaped by the preset's
+// attack/decay/release curves (-100 logarithmic … 0 linear … 100 exponential).
 func (i *Instrument) advanceEnvelope(v *voice) bool {
 	e := &v.z.sample.Amp
 	dt := 1 / float64(i.sr)
@@ -580,14 +739,18 @@ func (i *Instrument) advanceEnvelope(v *voice) bool {
 		if e.Attack <= 0 {
 			v.env = 1
 			v.stage = 2
+			v.stageT = 0
 			return false
 		}
-		v.env += 1 / (e.Attack * float64(i.sr))
-		if v.env >= 1 {
+		v.stageT += dt
+		p := v.stageT / e.Attack
+		if p >= 1 {
 			v.env = 1
 			v.stage = 2
 			v.stageT = 0
+			return false
 		}
+		v.env = envelopeCurve(p, e.AttackCurve)
 	case 2: // hold
 		v.stageT += dt
 		if v.stageT >= e.Hold {
@@ -600,25 +763,52 @@ func (i *Instrument) advanceEnvelope(v *voice) bool {
 			v.stage = 4
 			return false
 		}
-		v.env -= (1 - e.Sustain) / (e.Decay * float64(i.sr))
-		if v.env <= e.Sustain {
+		v.stageT += dt
+		p := v.stageT / e.Decay
+		if p >= 1 {
 			v.env = e.Sustain
 			v.stage = 4
+			return false
 		}
+		v.env = 1 - (1-e.Sustain)*envelopeCurve(p, e.DecayCurve)
 	case 5: // release
 		if e.Release <= 0 {
 			v.env = 0
 			v.finished = true
 			return true
 		}
-		v.env -= v.releaseLevel / (e.Release * float64(i.sr))
-		if v.env <= 0 {
+		v.stageT += dt
+		p := v.stageT / e.Release
+		if p >= 1 {
 			v.env = 0
 			v.finished = true
 			return true
 		}
+		v.env = v.releaseLevel * (1 - envelopeCurve(p, e.ReleaseCurve))
 	}
 	return false
+}
+
+// envelopeCurve maps linear stage progress to the DecentSampler curve shape.
+func envelopeCurve(p, curve float64) float64 {
+	if p <= 0 {
+		return 0
+	}
+	if p >= 1 {
+		return 1
+	}
+	if curve == 0 {
+		return p
+	}
+	k := math.Abs(curve) / 20
+	if k < 1e-4 {
+		return p
+	}
+	den := math.Exp(k) - 1
+	if curve > 0 {
+		return (math.Exp(k*p) - 1) / den
+	}
+	return 1 - (math.Exp(k*(1-p))-1)/den
 }
 
 // VoiceCount is the current polyphony.

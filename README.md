@@ -16,11 +16,15 @@ playback and note editors, hardware MIDI input, WAV/MP3 export and chord-chart
 PDFs.
 
 DecentSampler instruments (`*.dspreset`, `*.dslibrary`) play through a pure-Go
-sampler: key/velocity zones, round robins, loops, amp envelopes, low-pass
-filters, CC filters and per-channel mix. Melodic tracks use the sampler; drums
-keep the soundfont. Libraries are level-matched at load (with a per-instrument
-gain in Settings → Audio), the demo piano lives in `assets/decent/`, and the
-`gmid_decent` MCP tool loads, unloads and inspects instruments.
+sampler: key/velocity zones, group and sample round robins, loop crossfades,
+ADSR envelopes with DecentSampler curve shapes, key-track tuning, per-sample
+delay, note/release/first/legato/continuous triggers, CC range filters,
+CC-triggered zones, release-trigger decay, low-pass filters and per-channel
+mix. Melodic tracks use the sampler; drums keep the soundfont. Libraries are
+level-matched at load (with a per-instrument gain in Settings → Audio), the
+demo piano lives in `assets/decent/`, and the `gmid_decent` MCP tool loads,
+unloads and inspects instruments. Oscillators, bus routing and the preset
+effect chain are not implemented.
 
 A loaded DecentSampler instrument replaces the melodic synth for every
 non-drum track, so the GM/Studio/Native engine only affects drums until it is
