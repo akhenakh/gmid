@@ -3,6 +3,8 @@ package ui
 import (
 	. "go.hasen.dev/shirei"
 	. "go.hasen.dev/shirei/widgets"
+
+	"github.com/akhenakh/gmid/internal/app"
 )
 
 // Panel draws a raised charcoal surface.
@@ -55,18 +57,53 @@ func TitleText(text string) {
 	Label(text, FontSize(16), FontWeight(WeightBold), TextColorVec(ColText))
 }
 
-// IconButton is an icon-only button with an accessible label.
+// IconButton is an icon-only button with an accessible label and tooltip.
 func IconButton(icon IconGlyph, tip string, enabled bool) bool {
-	NextAccessLabel(tip)
-	NextButtonType(ButtonDefault)
-	return CtrlButton(icon, "", enabled)
+	return tippedIconButton(icon, tip, enabled, false)
 }
 
 // PrimaryIconButton is an accented icon-only button.
 func PrimaryIconButton(icon IconGlyph, tip string, enabled bool) bool {
-	NextAccessLabel(tip)
-	NextButtonType(ButtonPrimary)
-	return CtrlButton(icon, "", enabled)
+	return tippedIconButton(icon, tip, enabled, true)
+}
+
+// hoverTip is the tooltip under the pointer for the current frame.
+var hoverTip string
+
+func tippedIconButton(icon IconGlyph, tip string, enabled, primary bool) bool {
+	var clicked bool
+	// The wrapper gives us a hover scope that matches this button; checking
+	// IsHovered after CtrlButton refers to the parent otherwise.
+	Container(Attrs(Row, CrossMid), func() {
+		NextAccessLabel(tip)
+		if primary {
+			NextButtonType(ButtonPrimary)
+		} else {
+			NextButtonType(ButtonDefault)
+		}
+		clicked = CtrlButton(icon, "", enabled)
+		if tip != "" && IsHovered() {
+			hoverTip = tip
+		}
+	})
+	return clicked
+}
+
+// DrawTooltip draws the hint for the hovered icon button near the pointer.
+func DrawTooltip(a *app.App) {
+	if !a.Prefs.Tooltips || hoverTip == "" {
+		return
+	}
+	p := GetHost().Input.MousePoint
+	win := GetHost().WindowSize
+	w := float32(len(hoverTip))*6.3 + 18
+	x := minf(p[0]+16, win[0]-w-8)
+	y := minf(p[1]+20, win[1]-34)
+	Container(Attrs(Float(x, y), Z(300), NoAnimate, Pad2(5, 8), Corners(7),
+		BackgroundVec(Col("#15161c")), BorderWidth(1),
+		BorderColorVec(Alpha(ColBorder, .9)), BoxShadow(8)), func() {
+		Label(hoverTip, FontSize(11), TextColorVec(ColText))
+	})
 }
 
 // Pill is a compact rounded value readout.

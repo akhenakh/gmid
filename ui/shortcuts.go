@@ -9,15 +9,23 @@ import (
 // HandleShortcuts processes global keys after the UI has been built, so a
 // focused text field can claim WantsKeyboard and suppress app shortcuts.
 func HandleShortcuts(a *app.App) {
+	c := ActiveCombo()
+	// Presentation must always be escapable, even if a widget still claims the
+	// keyboard from before the mode was entered.
+	if c.Key == KeyF11 && c.Mod&^ModShift == 0 {
+		a.UI.Presentation = !a.UI.Presentation
+		return
+	}
+	if c.Key == KeyEscape && a.UI.Presentation {
+		a.UI.Presentation = false
+		return
+	}
 	if GetHost().WantsKeyboard {
 		return
 	}
-	c := ActiveCombo()
 	primary := PrimaryMod()
 
 	switch {
-	case c.Key == KeyF11 && c.Mod&^ModShift == 0:
-		a.UI.Presentation = !a.UI.Presentation
 	case a.Edit.Active && (c.Key == KeyDeleteBackward || c.Key == KeyDeleteForward):
 		a.DeleteSelected()
 	case a.Edit.Active && c.Key == KeyZ && c.Mod&primary != 0:
@@ -34,8 +42,6 @@ func HandleShortcuts(a *app.App) {
 		switch {
 		case a.Edit.Active:
 			a.EndNoteEditor()
-		case a.UI.Presentation:
-			a.UI.Presentation = false
 		case a.UI.Confirm != nil:
 			a.UI.Confirm = nil
 		case a.UI.SettingsOpen:
@@ -47,6 +53,8 @@ func HandleShortcuts(a *app.App) {
 		default:
 			a.Stop()
 		}
+	case c.Key == KeyB && c.Mod&primary != 0:
+		a.UI.SideOpen = !a.UI.SideOpen
 	case c.Key == KeyRight && c.Mod&ModShift != 0:
 		a.StepThrough(1, true)
 	case c.Key == KeyLeft && c.Mod&ModShift != 0:

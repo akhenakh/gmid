@@ -3,10 +3,11 @@
 | Shortcut | Action |
 | --- | --- |
 | `Space` | Play / pause |
-| `Escape` | Stop, or close the topmost panel |
+| `Escape` | Stop, or close the topmost panel; also exits presentation mode |
 | `←` / `→` | Step to the previous / next played moment |
 | `Shift`+`←` / `Shift`+`→` | Step by bar |
-| `F11` | Presentation mode |
+| `F11` | Toggle presentation mode (`Esc` also exits) |
+| `Ctrl`/`Cmd`+`B` | Show/hide the left Setup panel |
 | `Ctrl`/`Cmd`+`Up` / `Down` | Zoom the whole app (Shirei does not report `+`/`-` punctuation portably) |
 | `Ctrl`/`Cmd`+`O` | Open the Library |
 | `Ctrl`/`Cmd`+`P` | Settings (Ctrl+, is reserved for a later pass; Shirei does not report punctuation keys portably) |

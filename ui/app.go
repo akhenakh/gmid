@@ -20,6 +20,7 @@ const (
 
 // Root builds the whole application surface.
 func Root(a *app.App) {
+	hoverTip = ""
 	a.SyncEngine()
 	a.UpdateHits()
 	GetHost().ComfortScale = clampf(float32(a.Prefs.AppZoom), 0.8, 1.5)
@@ -28,6 +29,8 @@ func Root(a *app.App) {
 
 	if a.UI.Presentation {
 		Presentation(a)
+		HandleShortcuts(a)
+		DrawTooltip(a)
 		return
 	}
 
@@ -44,6 +47,7 @@ func Root(a *app.App) {
 
 	Overlays(a)
 	HandleShortcuts(a)
+	DrawTooltip(a)
 }
 
 func TopBar(a *app.App) {
@@ -56,6 +60,16 @@ func TopBar(a *app.App) {
 			MainAlign(AlignMiddle), CrossAlign(AlignMiddle)), func() {
 			Label("g", FontSize(17), FontWeight(WeightBold), TextColorVec(Col("#181005")))
 		})
+
+		// Panel toggle: the Setup pane can be closed from its own header, so
+		// keep a recall button in the chrome.
+		panelIcon := TypChevronLeft
+		if !a.UI.SideOpen {
+			panelIcon = TypChevronRight
+		}
+		if IconButton(panelIcon, "Toggle setup panel (Ctrl+B)", true) {
+			a.UI.SideOpen = !a.UI.SideOpen
+		}
 
 		Container(Attrs(Gap(0), MainAlign(AlignMiddle)), func() {
 			title := "gmid"
@@ -151,7 +165,7 @@ func TopBar(a *app.App) {
 		if IconButton(TypCog, "Settings (Ctrl+,)", true) {
 			a.UI.SettingsOpen = !a.UI.SettingsOpen
 		}
-		if IconButton(TypArrowMaximise, "Presentation mode (F11)", true) {
+		if IconButton(TypArrowMaximise, "Presentation mode (F11, Esc exits)", true) {
 			a.UI.Presentation = true
 		}
 		if IconButton(TypKeyboard, "Floating keyboard", true) {
@@ -529,6 +543,15 @@ func Presentation(a *app.App) {
 		PianoRoll(a)
 		min, max := KeyRange(a.Prefs.KeyRange)
 		PianoKeyboard(min, max, 190, soundingKeys(a), a.Prefs.ShowNoteNames, a.Prefs.ShowOctaves, a.KeyDown, a.KeyUp)
+		win := GetHost().WindowSize
+		Container(Attrs(Float(maxf(win[0]-180, 8), 12), Z(120), NoAnimate,
+			Row, CrossMid, Gap(6), Pad2(5, 9), Corners(9),
+			BackgroundVec(Alpha(ColToolbar, .94)), BorderWidth(1),
+			BorderColorVec(Alpha(ColAmber, .45)), BoxShadow(12)), func() {
+			if CtrlButton(TypArrowMinimise, "Exit fullscreen (Esc)", true) {
+				a.UI.Presentation = false
+			}
+		})
 	})
 }
 
