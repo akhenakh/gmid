@@ -50,6 +50,29 @@ func (s *Server) registerTransport() {
 		})
 	})
 
+	s.srv.AddTool(sdk.NewTool("gmid_step",
+		toolTitle("gmid step through"),
+		toolDesc("Walk the song one note/chord or one bar at a time."),
+		sdk.WithString("action", sdk.Description("next | prev | next_bar | prev_bar"), sdk.WithStringEnumItems([]string{"next", "prev", "next_bar", "prev_bar"})),
+	), func(ctx context.Context, req sdk.CallToolRequest) (*sdk.CallToolResult, error) {
+		return s.withApp(func(a *app.App) (*sdk.CallToolResult, error) {
+			if a.Song == nil {
+				return errResult("no song loaded")
+			}
+			dir, bar := 1, false
+			switch req.GetString("action", "next") {
+			case "prev":
+				dir = -1
+			case "next_bar":
+				bar = true
+			case "prev_bar":
+				dir, bar = -1, true
+			}
+			a.StepThrough(dir, bar)
+			return jsonResult(map[string]any{"position": a.Transport.Time, "bar": a.Song.BarNumberAt(a.Transport.Time)})
+		})
+	})
+
 	s.srv.AddTool(sdk.NewTool("gmid_loop",
 		toolTitle("gmid loop"),
 		toolDesc("Set, clear or inspect the loop region."),
