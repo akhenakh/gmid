@@ -22,6 +22,7 @@ type Prefs struct {
 	SoundEngine  string  `json:"soundEngine"`  // gm | studio | native
 	SoundFont    string  `json:"soundFont"`    // absolute path or bundled name
 	DecentPreset string  `json:"decentPreset"` // .dspreset or .dslibrary
+	DecentGain   float64 `json:"decentGain"`   // user gain in dB on top of level matching
 	OutputDevice string  `json:"outputDevice"`
 	ShareMode    string  `json:"shareMode"` // shared | exclusive
 	BufferFrames int     `json:"bufferFrames"`

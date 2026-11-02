@@ -14,15 +14,20 @@ const maxVoices = 256
 
 // Instrument is a DecentSampler-compatible sample player.
 type Instrument struct {
-	mu       sync.Mutex
-	preset   *dspreset.Preset
-	zones    []*zone
-	groups   []*groupState
-	sr       int
-	voices   []*voice
-	ch       [16]channelState
-	lastNote int
-	errors   []string
+	mu         sync.Mutex
+	preset     *dspreset.Preset
+	zones      []*zone
+	groups     []*groupState
+	sr         int
+	voices     []*voice
+	ch         [16]channelState
+	lastNote   int
+	errors     []string
+	enabled    int
+	rrIndex    int
+	gain       float64
+	gainAdjust float64
+	refPeak    float64
 }
 
 type zone struct {
@@ -39,6 +44,7 @@ type zone struct {
 type groupState struct {
 	rr  int
 	seq string
+	pos int
 }
 
 type channelState struct {
@@ -86,14 +92,15 @@ func Load(p *dspreset.Preset, sampleRate int) (*Instrument, error) {
 	if sampleRate <= 0 {
 		sampleRate = 48000
 	}
-	inst := &Instrument{preset: p, sr: sampleRate}
+	inst := &Instrument{preset: p, sr: sampleRate, gain: 1, gainAdjust: 1}
 	buffers := map[string]*Buffer{}
+	inst.groups = make([]*groupState, len(p.Groups))
 	for gi, g := range p.Groups {
 		if !g.Enabled {
 			continue
 		}
-		gs := &groupState{seq: g.SeqMode}
-		inst.groups = append(inst.groups, gs)
+		inst.groups[gi] = &groupState{seq: g.SeqMode, pos: g.SeqPosition}
+		inst.enabled++
 		for _, s := range g.Samples {
 			buf := buffers[s.Path]
 			if buf == nil {
@@ -124,6 +131,12 @@ func Load(p *dspreset.Preset, sampleRate int) (*Instrument, error) {
 	if len(inst.zones) == 0 {
 		return nil, fmt.Errorf("no playable samples (%d errors)", len(inst.errors))
 	}
+	inst.gain, inst.refPeak = makeupGain(buffers)
+	if inst.gain != 1 {
+		for _, z := range inst.zones {
+			z.gain *= inst.gain
+		}
+	}
 	for i := range inst.ch {
 		inst.ch[i].volume = 1
 		inst.ch[i].expression = 1
@@ -148,13 +161,15 @@ type Stats struct {
 	Controls int      `json:"controls"`
 	Errors   []string `json:"errors,omitempty"`
 	Voices   int      `json:"voices"`
+	GainDB   float64  `json:"gainDb"`
+	RefPeak  float64  `json:"refPeak"`
 }
 
 // Info returns a summary.
 func (i *Instrument) Info() Stats {
 	i.mu.Lock()
 	defer i.mu.Unlock()
-	st := Stats{Path: i.preset.Path, Name: i.preset.Name, Groups: len(i.groups), Zones: len(i.zones)}
+	st := Stats{Path: i.preset.Path, Name: i.preset.Name, Groups: i.enabled, Zones: len(i.zones)}
 	seen := map[string]bool{}
 	for _, z := range i.zones {
 		if !seen[z.sample.Path] {
@@ -169,11 +184,22 @@ func (i *Instrument) Info() Stats {
 	st.Errors = append(st.Errors, i.errors...)
 	st.Voices = len(i.voices)
 	st.Buffers = len(st.Samples)
+	st.GainDB = 20 * math.Log10(i.gain)
+	st.RefPeak = i.refPeak
 	return st
 }
 
 // Controls exposes parsed instrument UI controls.
 func (i *Instrument) Controls() []dspreset.Control { return i.preset.Controls }
+
+// SetGainAdjust applies a user gain in decibels on top of the automatic
+// loudness matching. It takes effect on the next rendered block, including
+// sustained voices.
+func (i *Instrument) SetGainAdjust(db float64) {
+	i.mu.Lock()
+	i.gainAdjust = math.Pow(10, db/20)
+	i.mu.Unlock()
+}
 
 // NoteOn triggers matching zones.
 func (i *Instrument) NoteOn(key, vel, ch int) {
@@ -183,8 +209,40 @@ func (i *Instrument) NoteOn(key, vel, ch int) {
 		return
 	}
 	i.lastNote = key
+
+	// Group-level round robins: presets like the Steinway Grand split their
+	// round robins into separate groups (seqPosition 1..N). Only the group at
+	// the current position plays, otherwise every take is layered and the
+	// resulting comb filtering makes the instrument sound thin and quiet.
+	rrGroups, maxPos := 0, 0
+	rrMode := ""
+	for _, g := range i.preset.Groups {
+		if !g.Enabled || !isRRMode(g.SeqMode) {
+			continue
+		}
+		if rrGroups == 0 {
+			rrMode = g.SeqMode
+		}
+		rrGroups++
+		if g.SeqPosition > maxPos {
+			maxPos = g.SeqPosition
+		}
+	}
+	rrPos := 0
+	if rrGroups > 1 && maxPos > 0 {
+		if rrMode == "random" || rrMode == "true_random" {
+			rrPos = rand.Intn(maxPos) + 1
+		} else {
+			i.rrIndex = i.rrIndex%maxPos + 1
+			rrPos = i.rrIndex
+		}
+	}
+
 	for gi, g := range i.preset.Groups {
 		if !g.Enabled {
+			continue
+		}
+		if rrPos > 0 && isRRMode(g.SeqMode) && g.SeqPosition != rrPos {
 			continue
 		}
 		var matches []*zone
@@ -217,20 +275,74 @@ func (i *Instrument) NoteOn(key, vel, ch int) {
 		if len(matches) == 0 {
 			continue
 		}
-		// Round robin within a group.
-		if gi < len(i.groups) && (g.SeqMode == "round_robin" || g.SeqMode == "random" || g.SeqMode == "true_random") {
-			n := i.groups[gi].rr
-			i.groups[gi].rr++
+		// Sample-level round robins: only choose between zones that actually
+		// declare distinct seqPosition values.
+		if i.groups[gi] != nil && isRRMode(g.SeqMode) && hasDistinctSeqPositions(matches) {
+			gs := i.groups[gi]
 			if g.SeqMode == "random" || g.SeqMode == "true_random" {
 				matches = []*zone{matches[rand.Intn(len(matches))]}
 			} else {
-				matches = []*zone{matches[n%len(matches)]}
+				matches = []*zone{matches[gs.rr%len(matches)]}
+				gs.rr++
 			}
 		}
 		for _, z := range matches {
 			i.startVoice(z, key, vel, ch)
 		}
 	}
+}
+
+func isRRMode(mode string) bool {
+	return mode == "round_robin" || mode == "random" || mode == "true_random"
+}
+
+// makeupGain returns a whole-instrument gain so libraries mastered at very
+// different sample levels play at a comparable loudness. The reference is the
+// 90th percentile of sample peaks, so one hot sample cannot hold the rest down.
+// The gain is clamped to +3.8 dB of attenuation and +15.6 dB of boost.
+func makeupGain(buffers map[string]*Buffer) (gain, ref float64) {
+	if len(buffers) == 0 {
+		return 1, 0
+	}
+	peaks := make([]float64, 0, len(buffers))
+	for _, b := range buffers {
+		peaks = append(peaks, float64(bufferPeak(b)))
+	}
+	sort.Float64s(peaks)
+	ref = peaks[int(float64(len(peaks)-1)*0.9)]
+	if ref <= 0.0001 {
+		return 1, ref
+	}
+	gain = 0.55 / ref
+	if gain < 0.5 {
+		gain = 0.5
+	}
+	if gain > 6 {
+		gain = 6
+	}
+	return gain, ref
+}
+
+func bufferPeak(b *Buffer) float32 {
+	var peak float32
+	for i := range b.L {
+		if v := float32(math.Abs(float64(b.L[i]))); v > peak {
+			peak = v
+		}
+		if v := float32(math.Abs(float64(b.R[i]))); v > peak {
+			peak = v
+		}
+	}
+	return peak
+}
+
+func hasDistinctSeqPositions(zones []*zone) bool {
+	for _, z := range zones[1:] {
+		if z.sample.SeqPosition != zones[0].sample.SeqPosition {
+			return true
+		}
+	}
+	return false
 }
 
 func (i *Instrument) startVoice(z *zone, key, vel, ch int) {
@@ -434,7 +546,7 @@ func (i *Instrument) renderVoice(v *voice, l, r []float32) {
 			v.bandR += v.f * hiR
 			r0 = v.lowR
 		}
-		g := float32(v.gain * chGain * v.env)
+		g := float32(v.gain * chGain * v.env * i.gainAdjust)
 		panPos := (v.z.pan+100)/200 + (ch.pan - 0.5)
 		if panPos < 0 {
 			panPos = 0

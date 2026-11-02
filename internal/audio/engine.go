@@ -82,6 +82,8 @@ type Engine struct {
 	audible [256]bool
 	chMix   [16]ChannelMix
 
+	decentGainDB float64
+
 	idx     int
 	beatIdx int
 	beats   []float64
@@ -178,12 +180,30 @@ func (e *Engine) LoadDecentPreset(path string) error {
 	}
 	e.mu.Lock()
 	e.decent = inst
+	e.decent.SetGainAdjust(e.decentGainDB)
 	for ch := 0; ch < 16; ch++ {
 		m := e.chMix[ch]
 		e.decent.SetChannelMix(ch, m.Volume, m.Pan)
 	}
 	e.mu.Unlock()
 	return nil
+}
+
+// SetDecentGain applies the user's instrument gain in decibels and remembers it
+// for instruments loaded later.
+func (e *Engine) SetDecentGain(db float64) {
+	if db < -48 {
+		db = -48
+	}
+	if db > 24 {
+		db = 24
+	}
+	e.mu.Lock()
+	e.decentGainDB = db
+	if e.decent != nil {
+		e.decent.SetGainAdjust(db)
+	}
+	e.mu.Unlock()
 }
 
 // UnloadDecent removes the DecentSampler instrument.
@@ -271,6 +291,9 @@ func (e *Engine) Pause() {
 	e.countInActive = false
 	if e.synth != nil {
 		e.synth.NoteOffAll(false)
+	}
+	if e.decent != nil {
+		e.decent.Reset()
 	}
 }
 

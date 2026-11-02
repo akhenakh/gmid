@@ -154,6 +154,13 @@ func TestMCPDecentSampler(t *testing.T) {
 	if info, ok := a.DecentStatus(); !ok || info.Zones < 5 {
 		t.Fatalf("status: %+v ok=%v", info, ok)
 	}
+	res = call(t, c, "gmid_decent", map[string]any{"action": "status", "gain_db": -6})
+	if !contains(res, `"gainDb": -6`) {
+		t.Fatalf("decent gain: %s", res)
+	}
+	if a.Prefs.DecentGain != -6 {
+		t.Fatalf("gain not persisted: %v", a.Prefs.DecentGain)
+	}
 	call(t, c, "gmid_decent", map[string]any{"action": "unload"})
 	if _, ok := a.DecentStatus(); ok {
 		t.Fatal("decent not unloaded")

@@ -59,3 +59,48 @@ func TestPitchTracking(t *testing.T) {
 		t.Fatal("voice ended immediately")
 	}
 }
+
+func TestMakeupGainAndUserGain(t *testing.T) {
+	p, err := dspreset.Load("../../assets/decent/demo-piano.dspreset")
+	if err != nil {
+		t.Skipf("demo preset missing: %v", err)
+	}
+	base, err := Load(p, 44100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info := base.Info(); info.GainDB <= 0 || info.RefPeak <= 0 {
+		t.Fatalf("no level matching: %+v", info)
+	}
+	base.NoteOn(60, 100, 0)
+	l := make([]float32, 22050)
+	base.Render(l, make([]float32, 22050))
+	basePeak := 0.0
+	for _, v := range l {
+		if a := math.Abs(float64(v)); a > basePeak {
+			basePeak = a
+		}
+	}
+	if basePeak < 0.1 || basePeak > 0.4 {
+		t.Fatalf("level-matched peak = %g", basePeak)
+	}
+
+	boosted, err := Load(p, 44100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	boosted.SetGainAdjust(6)
+	boosted.NoteOn(60, 100, 0)
+	l2 := make([]float32, 22050)
+	boosted.Render(l2, make([]float32, 22050))
+	boostPeak := 0.0
+	for _, v := range l2 {
+		if a := math.Abs(float64(v)); a > boostPeak {
+			boostPeak = a
+		}
+	}
+	ratio := boostPeak / basePeak
+	if ratio < 1.8 || ratio > 2.2 {
+		t.Fatalf("+6 dB ratio = %.2f", ratio)
+	}
+}

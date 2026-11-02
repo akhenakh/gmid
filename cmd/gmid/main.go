@@ -130,6 +130,8 @@ func loadSoundFont(a *app.App, engine *audio.Engine, prefs config.Prefs) {
 		if a.Prefs.DecentPreset != "" {
 			if err := engine.LoadDecentPreset(a.Prefs.DecentPreset); err != nil {
 				a.Notify("DecentSampler: " + err.Error())
+			} else {
+				engine.SetDecentGain(a.Prefs.DecentGain)
 			}
 		}
 	})

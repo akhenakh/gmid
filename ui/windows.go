@@ -100,7 +100,7 @@ func SettingsWindow(a *app.App) {
 				Container(Attrs(Gap(3), Pad2(6, 2)), func() {
 					Label("DecentSampler instrument", FontSize(12), TextColorVec(ColText))
 					Caption("A .dspreset or .dslibrary replaces the melodic synth; drums keep the soundfont.")
-					Container(Attrs(FixWidth(470)), func() {
+					Container(Attrs(FixWidth(600)), func() {
 						TextInput(&a.Prefs.DecentPreset)
 					})
 					Container(Attrs(Row, Gap(6)), func() {
@@ -127,6 +127,17 @@ func SettingsWindow(a *app.App) {
 					} else {
 						Caption("No DecentSampler instrument loaded")
 					}
+					Container(Attrs(Row, Gap(6), CrossMid), func() {
+						Label("Instrument gain", FontSize(12), TextColorVec(ColText))
+						v := float32(a.Prefs.DecentGain)
+						Slider(&v, SliderAttrs{Min: -24, Max: 24, Step: 0.5, Width: 160})
+						if float64(v) != a.Prefs.DecentGain {
+							a.SetDecentGain(float64(v))
+						}
+						Label(fmt.Sprintf("%+.1f dB", a.Prefs.DecentGain),
+							Fonts("JetBrains Mono"), FontSize(12), TextColorVec(ColText))
+					})
+					Caption("0 dB uses automatic level matching; raise it for quiet libraries.")
 				})
 
 			}

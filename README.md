@@ -18,8 +18,9 @@ PDFs.
 DecentSampler instruments (`*.dspreset`, `*.dslibrary`) play through a pure-Go
 sampler: key/velocity zones, round robins, loops, amp envelopes, low-pass
 filters, CC filters and per-channel mix. Melodic tracks use the sampler; drums
-keep the soundfont. Load one from Settings → Audio, or with the `gmid_decent`
-MCP tool; a small demo piano ships in `assets/decent/`.
+keep the soundfont. Libraries are level-matched at load (with a per-instrument
+gain in Settings → Audio), the demo piano lives in `assets/decent/`, and the
+`gmid_decent` MCP tool loads, unloads and inspects instruments.
 
 Known gaps: Guitar Pro and Capella import use the local `mscore` command when
 available (not bundled); OS-level fullscreen and multi-window; per-channel VU

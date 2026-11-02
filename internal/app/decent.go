@@ -15,10 +15,20 @@ func (a *App) LoadDecentPreset(path string) error {
 	if err := a.Engine.LoadDecentPreset(path); err != nil {
 		return err
 	}
+	a.Engine.SetDecentGain(a.Prefs.DecentGain)
 	a.Prefs.DecentPreset = path
 	_ = a.Prefs.Save()
 	a.Notify("Loaded DecentSampler: " + path)
 	return nil
+}
+
+// SetDecentGain applies and persists the user's DecentSampler gain in dB.
+func (a *App) SetDecentGain(db float64) {
+	a.Prefs.DecentGain = db
+	if a.Engine != nil {
+		a.Engine.SetDecentGain(db)
+	}
+	_ = a.Prefs.Save()
 }
 
 // UnloadDecentPreset removes the DecentSampler instrument.

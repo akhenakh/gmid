@@ -19,6 +19,7 @@ type Engine interface {
 	LoadSoundFont(path string) error
 	LoadDecentPreset(path string) error
 	UnloadDecent()
+	SetDecentGain(db float64)
 	DecentInfo() (sampler.Stats, bool)
 	DecentControls() []dspreset.Control
 	StartOutput(device string, exclusive bool, frames int) error

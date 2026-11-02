@@ -43,6 +43,7 @@ type Group struct {
 	FilterCutoff  float64
 	FilterQ       float64
 	SeqMode       string
+	SeqPosition   int
 	SeqLength     int
 	Samples       []*Sample
 }
@@ -186,6 +187,7 @@ func Load(path string) (*Preset, error) {
 			FilterCutoff:  attrFloat(g.Attrs, "filterCutoff", groupFilter),
 			FilterQ:       attrFloat(g.Attrs, "filterResonance", groupQ),
 			SeqMode:       pick(g.Attrs, "seqMode", groupSeqMode),
+			SeqPosition:   attrInt(g.Attrs, "seqPosition", 1),
 			SeqLength:     attrInt(g.Attrs, "seqLength", groupSeqLen),
 		}
 		// group pan is additive to the sample pan; keep as offset
