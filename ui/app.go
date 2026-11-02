@@ -363,6 +363,10 @@ func LeftPanel(a *app.App) {
 					SegmentedCell("88", 88)
 				})
 			})
+			SettingRow("Fit to song", "Show only the pitches this song uses.", func() {
+				ToggleSwitch(&a.Prefs.FitSongRange)
+				a.SavePrefs()
+			})
 			SettingRow("Note names", "Show names on the keys.", func() {
 				ToggleSwitch(&a.Prefs.ShowNoteNames)
 				a.SavePrefs()
