@@ -177,6 +177,10 @@ func (e *Engine) onAudio(pOutput []byte, framecount uint32) {
 	}
 	out := unsafe.Slice((*float32)(unsafe.Pointer(&pOutput[0])), n*2)
 	e.mu.Lock()
+	if len(e.cbL) < n {
+		e.cbL = make([]float32, n)
+		e.cbR = make([]float32, n)
+	}
 	if len(e.tmpL) < n {
 		e.tmpL = make([]float32, n)
 		e.tmpR = make([]float32, n)
@@ -185,8 +189,8 @@ func (e *Engine) onAudio(pOutput []byte, framecount uint32) {
 		e.smpL = make([]float32, n)
 		e.smpR = make([]float32, n)
 	}
-	l := e.tmpL[:n]
-	r := e.tmpR[:n]
+	l := e.cbL[:n]
+	r := e.cbR[:n]
 	for i := range l {
 		l[i], r[i] = 0, 0
 	}

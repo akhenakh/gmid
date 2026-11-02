@@ -91,11 +91,16 @@ type Engine struct {
 	peak    float64
 	ready   bool
 
-	sr      int
-	tmpL    []float32
-	tmpR    []float32
-	smpL    []float32
-	smpR    []float32
+	sr   int
+	tmpL []float32
+	tmpR []float32
+	smpL []float32
+	smpR []float32
+	// cbL/cbR are the device callback's output, separate from the scratch
+	// buffers used while mixing: renderSpan writes the synth into tmpL, so the
+	// callback must never pass tmpL as its output buffer.
+	cbL     []float32
+	cbR     []float32
 	out     *malgoOutput
 	running atomic.Bool
 }
@@ -116,6 +121,8 @@ func New(sampleRate int) *Engine {
 	e.tmpR = make([]float32, 4096)
 	e.smpL = make([]float32, 4096)
 	e.smpR = make([]float32, 4096)
+	e.cbL = make([]float32, 4096)
+	e.cbR = make([]float32, 4096)
 	return e
 }
 
