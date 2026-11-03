@@ -17,6 +17,8 @@
 # Local audio exports
 *.wav
 *.mp3
+# ...but the generated DecentSampler demo samples ship with the app
+!/assets/decent/samples/*.wav
 
 # Video project: keep the timeline and drivers, not recordings/renders
 /gmid-video/assets/*/clip.mkv
