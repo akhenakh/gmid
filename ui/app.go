@@ -584,6 +584,13 @@ func tempoControl(a *app.App) {
 		bpm = a.Song.EffectiveBPM(a.Transport.Time) * a.Transport.Speed
 	}
 	Pill(Attrs(Gap(4)), func() {
+		// Reset sits before the BPM readout so the number and step buttons keep
+		// their position when the reset button appears.
+		if a.Transport.Speed != 1 {
+			if CtrlButton(TypRefresh, "Reset tempo", true) {
+				a.SetSpeed(1)
+			}
+		}
 		Caption("BPM")
 		Label(fmt.Sprintf("%.0f", bpm), Fonts("JetBrains Mono"), FontSize(12),
 			FontWeight(WeightBold), TextColorVec(ColText))
@@ -592,11 +599,6 @@ func tempoControl(a *app.App) {
 		}
 		tempoStep(a, "tempo-down", -1, TypArrowDown)
 		tempoStep(a, "tempo-up", 1, TypArrowUp)
-		if a.Transport.Speed != 1 {
-			if CtrlButton(TypRefresh, "Reset tempo", true) {
-				a.SetSpeed(1)
-			}
-		}
 	})
 }
 
