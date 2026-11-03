@@ -131,22 +131,33 @@ func Run(o Options) (string, error) {
 		o.Progress(1)
 	}
 	normalize(left, right, 0.891) // -1 dBFS
-	dir := config.ExportsDir(o.Library)
 	base := strings.TrimSuffix(filepath.Base(o.Song.Path), filepath.Ext(o.Song.Path))
 	base = base + " - " + string(o.Variant)
 	ext := ".wav"
 	if strings.EqualFold(o.Format, "mp3") {
 		ext = ".mp3"
 	}
+	if dir := config.DownloadsDir(); dir != "" {
+		if path, err := writeAudio(dir, base, ext, sr, left, right); err == nil {
+			return path, nil
+		}
+	}
+	return writeAudio(config.ExportsDir(o.Library), base, ext, sr, left, right)
+}
+
+func writeAudio(dir, base, ext string, sr int, left, right []float32) (string, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
 	path := nextFree(filepath.Join(dir, base+ext))
+	var err error
 	if ext == ".wav" {
-		if err := writeWAV(path, sr, left, right); err != nil {
-			return "", err
-		}
+		err = writeWAV(path, sr, left, right)
 	} else {
-		if err := writeMP3(path, sr, left, right); err != nil {
-			return "", err
-		}
+		err = writeMP3(path, sr, left, right)
+	}
+	if err != nil {
+		return "", err
 	}
 	return path, nil
 }

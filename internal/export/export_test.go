@@ -27,6 +27,13 @@ func TestExportWAVAndMP3(t *testing.T) {
 	} else {
 		_ = os.MkdirAll(dir, 0o755)
 	}
+	home := t.TempDir()
+	downloads := filepath.Join(home, "Downloads")
+	if err := os.Mkdir(downloads, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	for _, format := range []string{"wav", "mp3"} {
 		path, err := Run(Options{
 			Song: s, Variant: Heard, Format: format, SoundFont: sf2,
@@ -35,6 +42,9 @@ func TestExportWAVAndMP3(t *testing.T) {
 		})
 		if err != nil {
 			t.Fatalf("%s: %v", format, err)
+		}
+		if filepath.Dir(path) != downloads {
+			t.Fatalf("%s path %q, want it in %q", format, path, downloads)
 		}
 		st, err := os.Stat(path)
 		if err != nil {
