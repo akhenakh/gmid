@@ -4,8 +4,17 @@ A Go desktop rewrite of [Orfeo](https://github.com/Squarebow/Orfeo): falling-not
 piano roll, playable keyboard, chord and scale explorers, MIDI editing, and a
 three-engine audio stack.
 
+![gmid — piano roll, keyboard and track panels](docs/gmid-screenshot.png)
+
 The reference Electron/React implementation lives in `Orfeo/` (read-only, not
 part of this module).
+
+## Demo video
+
+[![Watch the gmid demo](docs/gmid-video.jpg)](https://youtu.be/yJgxQjpdmHo)
+
+[Watch the seven-minute demo on YouTube](https://youtu.be/yJgxQjpdmHo) — it
+includes the onboard DecentSampler performance.
 
 ## Status
 
