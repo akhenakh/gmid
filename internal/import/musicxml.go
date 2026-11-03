@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gomidi/midi/v2"
 	gomidi "gitlab.com/gomidi/midi/v2/smf"
 
+	"github.com/akhenakh/gmid/internal/import/gp"
 	"github.com/akhenakh/gmid/internal/smf"
 	"github.com/akhenakh/gmid/internal/song"
 )
@@ -27,7 +28,22 @@ func Load(path string) (*song.Song, error) {
 		return smf.ReadFile(path)
 	case ".musicxml", ".xml", ".mxl":
 		return loadMusicXML(path)
-	case ".gp", ".gp3", ".gp4", ".gp5", ".gpx", ".cap", ".capx":
+	case ".gp3", ".gp4", ".gp5":
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		s, err := gp.Parse(raw, path)
+		if err == nil {
+			return s, nil
+		}
+		// Fall back to MuseScore when the native reader cannot handle the file
+		// (for example a version variant it does not know yet).
+		if ext, extErr := externalScoreConvert(path); extErr == nil {
+			return ext, nil
+		}
+		return nil, fmt.Errorf("guitar pro: %w", err)
+	case ".gpx", ".gp", ".cap", ".capx":
 		if s, err := externalScoreConvert(path); err == nil {
 			return s, nil
 		}

@@ -49,6 +49,7 @@ jobs:
           go test ./internal/smf/ -run='^$' -fuzz=FuzzParse -fuzztime=20s
           go test ./internal/import/ -run='^$' -fuzz=FuzzParseMusicXML -fuzztime=20s
           go test ./internal/import/ -run='^$' -fuzz=FuzzUnzipMusicXML -fuzztime=20s
+          go test ./internal/import/gp/ -run='^$' -fuzz=FuzzParse -fuzztime=20s
 
   headless:
     runs-on: ubuntu-latest

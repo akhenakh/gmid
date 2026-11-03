@@ -14,7 +14,8 @@ Go implementation.
 | `internal/theory` | GM names/groups, note names, chord vocabulary/detection, palettes |
 | `internal/app` | Application state, transport, step-through, file loading |
 | `internal/audio` | Timeline, realtime/offline engine, malgo output, DSP (later) |
-| `internal/import` | MusicXML, Guitar Pro, Capella (later) |
+| `internal/import` | Format dispatch, MusicXML/MXL and MuseScore-backed GPX/Capella import |
+| `internal/import/gp` | Native Guitar Pro 3/4/5 binary parser |
 | `internal/edit` | Note editor buffer and history (later) |
 | `internal/library` | Folder scan, metadata cache, search (later) |
 | `internal/midiio` | rtmidi input and diagnostics (later) |

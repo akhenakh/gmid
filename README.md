@@ -52,11 +52,11 @@ includes the onboard DecentSampler performance.
 
 ## Status
 
-Working desktop build: MIDI/MusicXML/KAR import, realtime playback (meltysynth +
-malgo), falling-note roll, playable keyboard, mixer, focus mode, metronome and
-count-in, hand assignment, step-through, tap tempo, chord/scale explorers,
-playback and note editors, hardware MIDI input, WAV/MP3 export and chord-chart
-PDFs.
+Working desktop build: MIDI/MusicXML/KAR/Guitar Pro 3–5 import, realtime playback
+(meltysynth + malgo), falling-note roll, playable keyboard, mixer, focus mode,
+metronome and count-in, hand assignment, step-through, tap tempo, chord/scale
+explorers, playback and note editors, hardware MIDI input, WAV/MP3 export and
+chord-chart PDFs.
 
 DecentSampler instruments (`*.dspreset`, `*.dslibrary`) play through a pure-Go
 sampler: key/velocity zones, group and sample round robins, loop crossfades,
@@ -79,9 +79,10 @@ unloaded. GM uses the bundled General User GS; Studio and Native load the SF2
 set in Settings → Audio (the GM bank until one is chosen). Native differs by
 its exclusive low-latency output, not by its bank.
 
-Known gaps: Guitar Pro and Capella import use the local `mscore` command when
-available (not bundled); OS-level fullscreen and multi-window; per-channel VU
-meters are shared with the master peak; Starmap is a static chord-star view.
+Known gaps: Guitar Pro 3–5 import natively; GPX/GP7/GP8 and Capella import use
+the local `mscore` command when available (not bundled); OS-level fullscreen and
+multi-window; per-channel VU meters are shared with the master peak; Starmap is
+a static chord-star view.
 
 ## Build Requirements
 

@@ -39,3 +39,9 @@
 The feature set and several algorithms are inspired by
 [Orfeo](https://github.com/Squarebow/Orfeo) (GPL-3.0-or-later). `gmid` is an
 independent Go implementation, not a port of its Electron/React code.
+
+## File format references
+
+The Guitar Pro 3/4/5 reader was implemented from the public binary layout and
+cross-checked against [PyGuitarPro](https://github.com/Perlence/PyGuitarPro)
+(LGPL-3.0). No PyGuitarPro source code or test tablature is included in gmid.
