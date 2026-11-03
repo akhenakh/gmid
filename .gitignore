@@ -4,6 +4,7 @@
 
 # Build output and generated artifacts
 /build/
+/dist/
 /bin/
 *.test
 *.out

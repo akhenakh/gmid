@@ -1,7 +1,7 @@
 # gmid architecture
 
-`gmid` is a single-process Go desktop app. `Orfeo/` is a read-only behavioural
-reference and is not built or shipped.
+`gmid` is a single-process Go desktop app, inspired by Orfeo but an independent
+Go implementation.
 
 ## Packages
 

@@ -18,19 +18,27 @@ import (
 	"github.com/akhenakh/gmid/ui"
 )
 
+// version is stamped by GoReleaser at release time.
+var version = "dev"
+
 func main() {
 	var (
-		pngPath  = flag.String("png", "", "render one settled frame to PATH and exit")
-		scene    = flag.String("scene", "shell", "scene preset for headless renders")
-		width    = flag.Int("width", 1440, "headless render width")
-		height   = flag.Int("height", 900, "headless render height")
-		assets   = flag.String("assets", "", "assets directory override")
-		noAudio  = flag.Bool("noaudio", false, "do not open the audio device")
-		mcpOn    = flag.Bool("mcp", true, "start the gmid MCP server")
-		mcpAddr  = flag.String("mcp-addr", "127.0.0.1:8765", "MCP listen address")
-		mcpToken = flag.String("mcp-token", "", "optional bearer token for MCP")
+		showVersion = flag.Bool("version", false, "print the version and exit")
+		pngPath     = flag.String("png", "", "render one settled frame to PATH and exit")
+		scene       = flag.String("scene", "shell", "scene preset for headless renders")
+		width       = flag.Int("width", 1440, "headless render width")
+		height      = flag.Int("height", 900, "headless render height")
+		assets      = flag.String("assets", "", "assets directory override")
+		noAudio     = flag.Bool("noaudio", false, "do not open the audio device")
+		mcpOn       = flag.Bool("mcp", true, "start the gmid MCP server")
+		mcpAddr     = flag.String("mcp-addr", "127.0.0.1:8765", "MCP listen address")
+		mcpToken    = flag.String("mcp-token", "", "optional bearer token for MCP")
 	)
 	flag.Parse()
+	if *showVersion {
+		fmt.Println(version)
+		return
+	}
 
 	assetsDir := *assets
 	if assetsDir == "" {

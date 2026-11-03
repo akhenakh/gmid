@@ -35,7 +35,9 @@ func portableDir() string {
 
 // AssetsDir finds the bundled assets (fonts, demo songs, soundfonts). It checks
 // GMID_ASSETS, the working directory, the executable's directory and their
-// parents, so `go run` and an installed binary both work.
+// parents, so `go run`, a Linux install and a macOS `.app` bundle all work. In
+// a bundle the assets live in Contents/Resources/assets, hence the extra
+// Resources probe at each level.
 func AssetsDir() string {
 	if dir := os.Getenv("GMID_ASSETS"); dir != "" {
 		if isDir(dir) {
@@ -52,9 +54,13 @@ func AssetsDir() string {
 			continue
 		}
 		for i := 0; i < 8; i++ {
-			candidate := filepath.Join(dir, "assets")
-			if isDir(candidate) {
-				return candidate
+			for _, candidate := range []string{
+				filepath.Join(dir, "assets"),
+				filepath.Join(dir, "Resources", "assets"),
+			} {
+				if isDir(candidate) {
+					return candidate
+				}
 			}
 			parent := filepath.Dir(dir)
 			if parent == dir {

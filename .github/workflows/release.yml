@@ -1,0 +1,149 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  # Recovery path: tags pushed on a commit whose message contains [skip ci]
+  # (or tags created from the Releases UI on such a commit) do not trigger the
+  # push event, so this lets a tag be released on demand.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # gmid links cgo (malgo, rtmididrv), so there is no cross-OS build. Each
+  # runner compiles its own GOOS/GOARCH with GoReleaser and packages the
+  # archive with the matching assets.
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: Linux_x86_64
+          - runner: ubuntu-24.04-arm
+            platform: Linux_arm64
+          - runner: macos-15-intel
+            platform: Darwin_x86_64
+          - runner: macos-latest
+            platform: Darwin_arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${INPUT_TAG:-${GITHUB_REF_NAME}}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Building $TAG for ${{ matrix.platform }}"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: System dependencies (ALSA for cgo)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Fetch assets
+        run: make assets
+
+      - name: Build
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: build --single-target --clean -o build/gmid
+        env:
+          GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.tag }}
+
+      - name: Package
+        run: sh packaging/package.sh "${{ matrix.platform }}" "${{ steps.tag.outputs.version }}" build/gmid
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmid-${{ matrix.platform }}
+          path: build/gmid_*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      # Optional. When unset, the Homebrew bump step is skipped and the
+      # release still succeeds. Add it as a repository secret to publish
+      # the cask to akhenakh/homebrew-tap.
+      TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${INPUT_TAG:-${GITHUB_REF_NAME}}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gmid-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz > "gmid_${{ steps.tag.outputs.version }}_checksums.txt"
+          cat "gmid_${{ steps.tag.outputs.version }}_checksums.txt"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.tar.gz dist/*_checksums.txt --clobber
+          else
+            gh release create "$TAG" dist/*.tar.gz dist/*_checksums.txt \
+              --title "$TAG" --generate-notes --verify-tag
+          fi
+
+      - name: Attest release artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*_checksums.txt
+
+      - name: Publish Homebrew cask
+        if: env.TAP_GITHUB_TOKEN != ''
+        run: scripts/brew-bump.sh "${{ steps.tag.outputs.tag }}"

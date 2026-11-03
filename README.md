@@ -1,13 +1,49 @@
 # gmid
 
-A Go desktop rewrite of [Orfeo](https://github.com/Squarebow/Orfeo): falling-note
-piano roll, playable keyboard, chord and scale explorers, MIDI editing, and a
-three-engine audio stack.
+A Go desktop rewrite inspired by [Orfeo](https://github.com/Squarebow/Orfeo):
+falling-note piano roll, playable keyboard, chord and scale explorers, MIDI
+editing, and a three-engine audio stack. The original Electron/React app is the
+inspiration; gmid is an independent Go implementation.
 
 ![gmid — piano roll, keyboard and track panels](docs/gmid-screenshot.png)
 
-The reference Electron/React implementation lives in `Orfeo/` (read-only, not
-part of this module).
+Tested on macOS and Linux.
+
+## Install
+
+On macOS, with [Homebrew](https://brew.sh) (cask from
+[akhenakh/homebrew-tap](https://github.com/akhenakh/homebrew-tap)) — this
+installs **`gmid.app`** into `/Applications`:
+
+```sh
+brew install --cask akhenakh/tap/gmid
+```
+
+The cask ad-hoc signs the bundle at install time.
+
+Prebuilt archives for Linux and macOS (x86_64 and arm64) are attached to each
+[release](https://github.com/akhenakh/gmid/releases). On Linux the archive
+contains the `gmid` binary next to its `assets/` directory, which must stay
+together. On macOS the archive contains only **`gmid.app`** — drag it into
+`/Applications`. The bundle is unsigned, so the first launch needs
+right-click → Open (or `xattr -dr com.apple.quarantine gmid.app`).
+
+Or build from source:
+
+```sh
+make assets
+make build
+go run ./cmd/gmid
+```
+
+### Verifying a release
+
+Release archives carry [build provenance](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)
+signed by this repository's release workflow:
+
+```sh
+gh attestation verify gmid_<version>_Darwin_arm64.tar.gz --repo akhenakh/gmid
+```
 
 ## Demo video
 
@@ -51,14 +87,12 @@ See `.operator/plans/roadmap.md` for milestones.
 ## Build requirements
 
 - Go 1.27+
-- A C compiler (cgo) and, on Linux, `libasound2-dev`
+- A C compiler (cgo): Xcode command line tools on macOS; on Linux a C/C++
+  toolchain and `libasound2-dev`
 - `make` (optional)
 
-```sh
-make assets   # copies demo files/fonts; fetches GeneralUser GS if missing
-make build
-go run ./cmd/gmid
-```
+`make assets` downloads the GeneralUser GS soundfont on first use; fonts, demo
+songs and the DecentSampler demo instrument are committed.
 
 Headless screenshot (no display needed):
 
@@ -98,6 +132,8 @@ an **Output device** picker. Auto follows the system — normally PipeWire via
 PulseAudio; ALSA talks to the PipeWire ALSA plugin or the hardware directly.
 If playback crackles, raise the buffer to 512 or 1024, then try the other
 backend. `GMID_AUDIO_LOG=1` prints backend and device diagnostics.
+
+On macOS gmid uses CoreAudio; the same buffer and device controls apply.
 
 ## License
 

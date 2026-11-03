@@ -1,0 +1,28 @@
+version: 2
+
+project_name: gmid
+
+# gmid links cgo (malgo for audio, rtmididrv for MIDI input), so binaries cannot
+# be cross-compiled between operating systems and GoReleaser's split/merge and
+# prebuilt flows are Pro-only. The release workflow therefore runs
+#
+#   goreleaser build --single-target --clean -o build/gmid
+#
+# on one native runner per platform, then packaging/package.sh assembles the
+# archives and .github/workflows/release.yml publishes them.
+builds:
+  - id: gmid
+    main: ./cmd/gmid
+    binary: gmid
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64

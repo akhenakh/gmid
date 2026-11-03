@@ -27,8 +27,9 @@
 
 ## Soundfont and demo content
 
-- `GeneralUser-GS.sf2` is not committed to this repository. It is fetched or
-  copied into `assets/soundfonts/` at build time. GeneralUser GS is distributed
+- `GeneralUser-GS.sf2` is not committed to this repository. `make assets`
+  downloads it from the upstream [GeneralUser-GS repository](https://github.com/mrbumpy409/GeneralUser-GS)
+  (pinned to a commit) into `assets/soundfonts/`. GeneralUser GS is distributed
   free of charge by S. Christian Collins; see its accompanying terms.
 - Demo MIDI files are arrangements of public-domain compositions used for local
   testing. They are not required to build or run the app.
@@ -37,4 +38,4 @@
 
 The feature set and several algorithms are inspired by
 [Orfeo](https://github.com/Squarebow/Orfeo) (GPL-3.0-or-later). `gmid` is an
-independent Go implementation; the `Orfeo/` clone is a read-only reference.
+independent Go implementation, not a port of its Electron/React code.

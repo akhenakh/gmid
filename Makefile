@@ -1,6 +1,11 @@
 GO ?= go
 SCENES ?= shell roll library mixer settings chord-explorer scale-explorer note-editor presentation keys-floating export
 
+# GeneralUser GS is not committed (31 MB). The URL is pinned to a commit so a
+# release build always gets the same bank.
+SOUNDFONT_URL ?= https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/684543d5e5efaef08d02be50dcda8d552478fa60/GeneralUser-GS.sf2
+SOUNDFONT_SHA256 ?= 9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe
+
 .PHONY: all build run test lint fmt assets visual clean
 
 all: build
@@ -26,10 +31,17 @@ fmt:
 # out of git (31 MB).
 assets:
 	@mkdir -p assets/fonts assets/demo assets/soundfonts build/visual
-	@if [ ! -f assets/soundfonts/GeneralUser-GS.sf2 ] && [ -f Orfeo/public/GeneralUser-GS.sf2 ]; then \
-		cp Orfeo/public/GeneralUser-GS.sf2 assets/soundfonts/; \
-	elif [ ! -f assets/soundfonts/GeneralUser-GS.sf2 ]; then \
-		echo "GeneralUser GS missing: copy it to assets/soundfonts/GeneralUser-GS.sf2"; \
+	@if [ ! -f assets/soundfonts/GeneralUser-GS.sf2 ]; then \
+		echo "Fetching GeneralUser GS..."; \
+		curl -fL --retry 3 -o assets/soundfonts/GeneralUser-GS.sf2 "$(SOUNDFONT_URL)" || \
+			{ rm -f assets/soundfonts/GeneralUser-GS.sf2; \
+			  echo "download failed: put GeneralUser-GS.sf2 in assets/soundfonts/"; exit 1; }; \
+		got=$$(shasum -a 256 assets/soundfonts/GeneralUser-GS.sf2 2>/dev/null | awk '{print $$1}'); \
+		[ -n "$$got" ] || got=$$(sha256sum assets/soundfonts/GeneralUser-GS.sf2 | awk '{print $$1}'); \
+		if [ "$$got" != "$(SOUNDFONT_SHA256)" ]; then \
+			rm -f assets/soundfonts/GeneralUser-GS.sf2; \
+			echo "GeneralUser GS checksum mismatch: got $$got"; exit 1; \
+		fi; \
 	fi
 
 visual: build
