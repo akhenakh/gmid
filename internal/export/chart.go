@@ -64,8 +64,20 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 	if err != nil {
 		return "", err
 	}
-	dir := config.ExportsDir(library)
 	base := strings.TrimSuffix(filepath.Base(s.Path), filepath.Ext(s.Path))
+	dir := config.DownloadsDir()
+	if dir != "" {
+		if path, err := writeChartPDF(dir, base, pdf); err == nil {
+			return path, nil
+		}
+	}
+	return writeChartPDF(config.ExportsDir(library), base, pdf)
+}
+
+func writeChartPDF(dir, base string, pdf []byte) (string, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
 	path := nextFree(filepath.Join(dir, base+" - chords.pdf"))
 	if err := os.WriteFile(path, pdf, 0o644); err != nil {
 		return "", err

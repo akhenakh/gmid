@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // DataDir is the per-user directory for preferences, soundfonts, exports and
@@ -111,6 +112,48 @@ func ExportsDir(library string) string {
 	dir := filepath.Join(GmidDir(library), "exports")
 	_ = os.MkdirAll(dir, 0o755)
 	return dir
+}
+
+// DownloadsDir returns the user's Downloads folder when it exists. It honours
+// XDG_DOWNLOAD_DIR on Linux and otherwise falls back to ~/Downloads, which is
+// easier to find than the library's nested exports folder.
+func DownloadsDir() string {
+	home, _ := os.UserHomeDir()
+	if dir := xdgDownloadDir(home); dir != "" && isDir(dir) {
+		return dir
+	}
+	if home != "" {
+		if dir := filepath.Join(home, "Downloads"); isDir(dir) {
+			return dir
+		}
+	}
+	return ""
+}
+
+func xdgDownloadDir(home string) string {
+	cfg := os.Getenv("XDG_CONFIG_HOME")
+	if cfg == "" {
+		if home == "" {
+			return ""
+		}
+		cfg = filepath.Join(home, ".config")
+	}
+	data, err := os.ReadFile(filepath.Join(cfg, "user-dirs.dirs"))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "XDG_DOWNLOAD_DIR=") {
+			continue
+		}
+		dir := strings.TrimPrefix(line, "XDG_DOWNLOAD_DIR=")
+		dir = strings.Trim(dir, `"`)
+		dir = strings.ReplaceAll(dir, "${HOME}", home)
+		dir = strings.ReplaceAll(dir, "$HOME", home)
+		return dir
+	}
+	return ""
 }
 
 // DefaultLibrary is the library folder used before the user picks one. The
