@@ -37,6 +37,19 @@ jobs:
         with:
           version: latest
 
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Fuzz the parsers (smoke)
+        run: |
+          go test ./internal/smf/ -run='^$' -fuzz=FuzzParse -fuzztime=20s
+          go test ./internal/import/ -run='^$' -fuzz=FuzzParseMusicXML -fuzztime=20s
+          go test ./internal/import/ -run='^$' -fuzz=FuzzUnzipMusicXML -fuzztime=20s
+
   headless:
     runs-on: ubuntu-latest
     steps:

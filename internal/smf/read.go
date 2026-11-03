@@ -61,9 +61,22 @@ func ReadFile(path string) (*song.Song, error) {
 	return s, nil
 }
 
+// readSMF isolates the third-party parser. gomidi panics on some malformed
+// SMPTE headers (it assumes MetricTicks while finishing tempo changes), so turn
+// any panic into an error: a corrupt file must never crash the app.
+func readSMF(raw []byte) (f *smf.SMF, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			f = nil
+			err = fmt.Errorf("malformed smf: %v", r)
+		}
+	}()
+	return smf.ReadFrom(bytes.NewReader(raw))
+}
+
 // Parse parses raw SMF bytes. Name is derived from path when empty.
 func Parse(raw []byte, path string) (*song.Song, error) {
-	f, err := smf.ReadFrom(bytes.NewReader(raw))
+	f, err := readSMF(raw)
 	if err != nil {
 		return nil, fmt.Errorf("read midi: %w", err)
 	}

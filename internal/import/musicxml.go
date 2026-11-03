@@ -164,6 +164,12 @@ func loadMusicXML(path string) (*song.Song, error) {
 			return nil, err
 		}
 	}
+	return parseMusicXML(data, path)
+}
+
+// parseMusicXML parses an uncompressed MusicXML document. Kept separate from
+// loadMusicXML so fuzzing can feed it bytes without touching the filesystem.
+func parseMusicXML(data []byte, path string) (*song.Song, error) {
 	var score mxScore
 	dec := xml.NewDecoder(bytes.NewReader(data))
 	dec.Strict = false
@@ -358,6 +364,24 @@ func loadMusicXML(path string) (*song.Song, error) {
 	return s, nil
 }
 
+const (
+	maxMusicXMLContainer = 1 << 20  // META-INF/container.xml
+	maxMusicXMLScore     = 64 << 20 // score document
+)
+
+// readLimited reads r but rejects anything larger than limit, so a small
+// compressed .mxl cannot expand without bound.
+func readLimited(r io.Reader, limit int64) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > limit {
+		return nil, fmt.Errorf("mxl: entry exceeds %d bytes", limit)
+	}
+	return body, nil
+}
+
 func unzipMusicXML(data []byte) ([]byte, error) {
 	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
@@ -370,7 +394,7 @@ func unzipMusicXML(data []byte) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			body, err := io.ReadAll(rc)
+			body, err := readLimited(rc, maxMusicXMLContainer)
 			_ = rc.Close()
 			if err != nil {
 				return nil, err
@@ -405,7 +429,7 @@ func unzipMusicXML(data []byte) ([]byte, error) {
 			return nil, err
 		}
 		defer func() { _ = rc.Close() }()
-		return io.ReadAll(rc)
+		return readLimited(rc, maxMusicXMLScore)
 	}
 	return nil, fmt.Errorf("mxl: rootfile missing")
 }
