@@ -621,6 +621,13 @@ func tempoStep(a *app.App, key string, dir int, icon IconGlyph) {
 
 func keyControl(a *app.App) {
 	Pill(Attrs(Gap(4)), func() {
+		// Reset sits before the KEY readout so the key label and step buttons
+		// keep their position when the reset button appears.
+		if a.Transport.Transpose != 0 {
+			if CtrlButton(TypRefresh, "Reset key", true) {
+				a.SetTranspose(0)
+			}
+		}
 		Caption("KEY")
 		Label(keyLabel(a), FontSize(12), FontWeight(WeightBold), TextColorVec(ColAmber))
 		if a.Transport.Transpose != 0 {
@@ -631,11 +638,6 @@ func keyControl(a *app.App) {
 		}
 		if CtrlButton(TypArrowUp, "", true) {
 			a.SetTranspose(a.Transport.Transpose + 1)
-		}
-		if a.Transport.Transpose != 0 {
-			if CtrlButton(TypRefresh, "Reset key", true) {
-				a.SetTranspose(0)
-			}
 		}
 	})
 }
