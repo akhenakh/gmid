@@ -62,6 +62,7 @@ type Measure struct {
 	Num    int
 	Den    int
 	Fifths int
+	SigW   float64 // width reserved for a mid-system key/time change
 	Treble []*Event
 	Bass   []*Event
 	X      float64
@@ -158,7 +159,7 @@ func fillMeasures(s *song.Song, measures []Measure, ppq int64, opt Options) []Me
 	if len(measures) == 0 {
 		return measures
 	}
-	grid := ppq / 4 // sixteenth note
+	grid := ppq / 12 // 1/16 triplets; finer than 1/16 so triplets survive
 	if grid < 1 {
 		grid = 1
 	}
@@ -481,6 +482,22 @@ func (s *Score) layout(opt Options) {
 			m.W = weights[i] * scale
 			x += m.W
 		}
+		for i, mi := range sys.Measure {
+			m := &s.Measures[mi]
+			if i == 0 {
+				m.SigW = 0
+				continue
+			}
+			prev := &s.Measures[sys.Measure[i-1]]
+			w := 0.0
+			if m.Fifths != prev.Fifths {
+				w += keySigWidth(m.Fifths, space) + 2
+			}
+			if m.Num != prev.Num || m.Den != prev.Den {
+				w += 2.1*space + 2
+			}
+			m.SigW = w
+		}
 	}
 	s.Systems = systems
 	s.Height = systems[len(systems)-1].Y + SystemHeight
@@ -523,18 +540,19 @@ func measureWidth(m *Measure, space float64) float64 {
 }
 
 func layoutEvents(events []*Event, m *Measure, staff int, space float64) {
-	top := m.Y + trebleOffset
-	if staff == 1 {
-		top = m.Y + bassOffset
+	_ = staff
+	left := 10 + m.SigW
+	right := 10.0
+	if m.W-left-right < 20 {
+		left = 10
 	}
-	_ = top
 	for _, ev := range events {
 		if m.End <= m.Start {
-			ev.X = m.X + 10
+			ev.X = m.X + left
 			continue
 		}
 		frac := float64(ev.Start-m.Start) / float64(m.End-m.Start)
-		ev.X = m.X + 10 + frac*(m.W-20)
+		ev.X = m.X + left + frac*(m.W-left-right)
 	}
 }
 
