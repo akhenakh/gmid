@@ -54,7 +54,7 @@ gh attestation verify gmid_<version>_Darwin_arm64.tar.gz --repo akhenakh/gmid
 
 [![Watch the gmid demo](docs/gmid-video.jpg)](https://youtu.be/artALrHk2N4)
 
-[Watch the seven-minute demo on YouTube](https://youtu.be/yJgxQjpdmHo) — it
+[Watch the seven-minute demo on YouTube](https://youtu.be/artALrHk2N4) — it
 includes the onboard DecentSampler performance.
 
 ## Status
