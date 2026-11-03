@@ -69,9 +69,11 @@ low/high/band-pass filters, Freeverb-style reverb), and per-channel mix.
 Melodic tracks use the sampler; drums keep the soundfont. Libraries are
 level-matched at load (with a per-instrument gain in Settings → Audio), the
 demo piano lives in `assets/decent/`, and the `gmid_decent` MCP tool loads,
-unloads and inspects instruments. Oscillators, buses, group effects and the
-remaining effect types (delay, chorus, EQ, compressor, convolution…) are not
-implemented.
+unloads and inspects instruments. For a full instrument, try the free
+[Steinway Grand](https://www.pianobook.co.uk/packs/steinway-grand/) pack from
+Pianobook, which ships a DecentSampler version. Oscillators, buses, group
+effects and the remaining effect types (delay, chorus, EQ, compressor,
+convolution…) are not implemented.
 
 A loaded DecentSampler instrument replaces the melodic synth for every
 non-drum track, so the GM/Studio/Native engine only affects drums until it is
