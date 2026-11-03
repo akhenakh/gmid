@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"go.hasen.dev/generic"
 	. "go.hasen.dev/shirei"
 	shireiapp "go.hasen.dev/shirei/app"
 
@@ -101,13 +102,15 @@ func main() {
 
 	shireiapp.SetupWindow("gmid", *width, *height)
 	shireiapp.SetupDrive()
+	generic.AddExitCleanup(func() {
+		if engine != nil {
+			engine.Close()
+		}
+		if a.MIDI != nil {
+			a.MIDI.Close()
+		}
+	})
 	shireiapp.Run(func() { ui.Root(a) })
-	if engine != nil {
-		engine.Close()
-	}
-	if a.MIDI != nil {
-		a.MIDI.Close()
-	}
 }
 
 // loadSoundFont loads the GM bank off the UI thread, then re-installs the open

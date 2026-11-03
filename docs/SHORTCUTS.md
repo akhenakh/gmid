@@ -12,6 +12,7 @@
 | `Ctrl`/`Cmd`+`O` | Open the Library |
 | `Ctrl`/`Cmd`+`P` | Settings (Ctrl+, is reserved for a later pass; Shirei does not report punctuation keys portably) |
 | `Ctrl`/`Cmd`+`Shift`+`M` | Console Mixer |
+| `Ctrl`/`Cmd`+`Q` | Quit gmid |
 | Mouse wheel on the roll | Scrub ±2 s |
 | `Shift` + wheel on the roll | Fine scrub ±0.15 s |
 | Click the roll | Seek |

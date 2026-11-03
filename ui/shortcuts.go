@@ -4,12 +4,20 @@ import (
 	"github.com/akhenakh/gmid/internal/app"
 
 	. "go.hasen.dev/shirei"
+	shireiapp "go.hasen.dev/shirei/app"
 )
 
 // HandleShortcuts processes global keys after the UI has been built, so a
 // focused text field can claim WantsKeyboard and suppress app shortcuts.
 func HandleShortcuts(a *app.App) {
 	c := ActiveCombo()
+	primary := PrimaryMod()
+	// Quit works even while a text field has keyboard focus and in
+	// presentation mode.
+	if isQuitCombo(c) {
+		shireiapp.Quit()
+		return
+	}
 	// Presentation must always be escapable, even if a widget still claims the
 	// keyboard from before the mode was entered.
 	if c.Key == KeyF11 && c.Mod&^ModShift == 0 {
@@ -23,7 +31,6 @@ func HandleShortcuts(a *app.App) {
 	if GetHost().WantsKeyboard {
 		return
 	}
-	primary := PrimaryMod()
 
 	switch {
 	case a.Edit.Active && (c.Key == KeyDeleteBackward || c.Key == KeyDeleteForward):
@@ -80,4 +87,10 @@ func HandleShortcuts(a *app.App) {
 			a.UI.MixerOpen = true
 		}
 	}
+}
+
+// isQuitCombo reports the platform quit shortcut: Cmd+Q on macOS, Ctrl+Q on
+// Linux and Windows.
+func isQuitCombo(c KeyCombo) bool {
+	return c.Key == KeyQ && c.Mod&PrimaryMod() != 0
 }

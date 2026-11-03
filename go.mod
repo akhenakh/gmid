@@ -7,8 +7,10 @@ require (
 	github.com/fogleman/gg v1.3.0
 	github.com/gen2brain/malgo v0.11.27
 	github.com/mark3labs/mcp-go v1.5.0
+	github.com/mewkiz/flac v1.0.14
 	github.com/sinshu/go-meltysynth v0.0.0-20230205031334-05d311382fc4
 	gitlab.com/gomidi/midi/v2 v2.3.24
+	go.hasen.dev/generic v0.1.8
 	go.hasen.dev/shirei v0.8.0
 )
 
@@ -36,7 +38,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/icza/bitio v1.1.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
-	github.com/mewkiz/flac v1.0.14 // indirect
 	github.com/mewkiz/pkg v0.0.0-20250417130911-3f050ff8c56d // indirect
 	github.com/mewpkg/term v0.0.0-20241026122259-37a80af23985 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
@@ -49,7 +50,6 @@ require (
 	github.com/tdewolff/parse/v2 v2.8.12 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
-	go.hasen.dev/generic v0.1.8 // indirect
 	go.hasen.dev/udplib v0.1.0 // indirect
 	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
