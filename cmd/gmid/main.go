@@ -186,6 +186,9 @@ func prepareScene(a *app.App, scene string) {
 		a.UI.ChordExplorerOpen = true
 	case "scale-explorer":
 		a.UI.ScaleExplorerOpen = true
+	case "starmap":
+		a.UI.ScaleExplorerOpen = true
+		a.UI.ScaleStarmap = true
 	case "export":
 		a.UI.ExportOpen = true
 	}

@@ -79,10 +79,10 @@ unloaded. GM uses the bundled General User GS; Studio and Native load the SF2
 set in Settings → Audio (the GM bank until one is chosen). Native differs by
 its exclusive low-latency output, not by its bank.
 
-Known gaps: Guitar Pro 3–5 import natively; GPX/GP7/GP8 and Capella import use
-the local `mscore` command when available (not bundled); OS-level fullscreen and
-multi-window; per-channel VU meters are shared with the master peak; Starmap is
-a static chord-star view.
+Known gaps: GPX/GP7/GP8 and Capella import use the local `mscore` command when
+available (not bundled); OS-level fullscreen and multi-window; per-channel mixer
+meters are derived from scheduled note activity because the synth exposes one
+mixed output.
 
 ## Build Requirements
 

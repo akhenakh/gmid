@@ -1,5 +1,5 @@
 GO ?= go
-SCENES ?= shell roll library mixer settings chord-explorer scale-explorer note-editor presentation keys-floating export
+SCENES ?= shell roll library mixer settings chord-explorer scale-explorer starmap note-editor presentation keys-floating export
 
 # GeneralUser GS is not committed (31 MB). The URL is pinned to a commit so a
 # release build always gets the same bank.
