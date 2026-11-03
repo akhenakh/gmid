@@ -48,10 +48,13 @@ type Prefs struct {
 	ClosePanelsOnPlay  bool `json:"closePanelsOnPlay"`
 	ExplorerPause      bool `json:"explorerPause"`
 
-	HandAssignment bool `json:"handAssignment"`
-	HandTags       bool `json:"handTags"`
-	TrackVU        bool `json:"trackVU"`
-	NoteEditor     bool `json:"noteEditor"`
+	HandAssignment  bool `json:"handAssignment"`
+	HandTags        bool `json:"handTags"`
+	Sheet           bool `json:"sheet"`
+	SheetHandColors bool `json:"sheetHandColors"`
+	SheetFollow     bool `json:"sheetFollow"`
+	TrackVU         bool `json:"trackVU"`
+	NoteEditor      bool `json:"noteEditor"`
 
 	HandLH   string `json:"handLH"`
 	HandRH   string `json:"handRH"`
@@ -130,6 +133,9 @@ func Defaults() Prefs {
 		ExplorerPause:      true,
 		HandAssignment:     true,
 		HandTags:           false,
+		Sheet:              true,
+		SheetHandColors:    true,
+		SheetFollow:        true,
 		TrackVU:            true,
 		NoteEditor:         true,
 		HandLH:             "#6270A5",

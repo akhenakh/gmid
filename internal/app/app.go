@@ -120,6 +120,8 @@ type UIState struct {
 	FloatY       float32
 	FloatW       float32
 	FloatH       float32
+	SheetBar     int
+	SheetSong    string
 
 	Toast     string
 	ToastTill time.Time

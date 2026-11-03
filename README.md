@@ -60,10 +60,10 @@ includes the onboard DecentSampler performance.
 ## Status
 
 Working desktop build: MIDI/MusicXML/KAR/Guitar Pro 3–5 import, realtime playback
-(meltysynth + malgo), falling-note roll, playable keyboard, mixer, focus mode,
-metronome and count-in, hand assignment, step-through, tap tempo, chord/scale
-explorers, playback and note editors, hardware MIDI input, WAV/MP3 export and
-chord-chart PDFs.
+(meltysynth + malgo), falling-note roll, optional sheet music above the roll,
+playable keyboard, mixer, focus mode, metronome and count-in, hand assignment,
+step-through, tap tempo, chord/scale explorers, playback and note editors,
+hardware MIDI input, WAV/MP3 export and chord-chart PDFs.
 
 DecentSampler instruments (`*.dspreset`, `*.dslibrary`) play through a pure-Go
 sampler: key/velocity zones, group and sample round robins, loop crossfades,
@@ -89,7 +89,8 @@ its exclusive low-latency output, not by its bank.
 Known gaps: GPX/GP7/GP8 and Capella import use the local `mscore` command when
 available (not bundled); OS-level fullscreen and multi-window; per-channel mixer
 meters are derived from scheduled note activity because the synth exposes one
-mixed output.
+mixed output. The sheet view is inferred from the tick model — a practice
+reduction, not a preserved original engraving.
 
 ## Build Requirements
 

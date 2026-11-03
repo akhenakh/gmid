@@ -203,6 +203,9 @@ func MainColumn(a *app.App) {
 			fmt.Fprintf(os.Stderr, "main w=%.1f h=%.1f\n", GetContentWidth(), GetContentHeight())
 		}
 		RollHeader(a)
+		if a.Prefs.Sheet && a.Song != nil {
+			SheetPanel(a)
+		}
 		PianoRoll(a)
 		if a.Edit.Active {
 			VelocityLane(a)
@@ -257,6 +260,12 @@ func RollHeader(a *app.App) {
 				if CtrlButton(TypRefresh, "Clear tap tempo", true) {
 					a.ClearTempoFix()
 				}
+			}
+		}
+		if a.Song != nil {
+			if CtrlButton(TypNotes, "Sheet", true) {
+				a.Prefs.Sheet = !a.Prefs.Sheet
+				a.SavePrefs()
 			}
 		}
 		if IconButton(TypFolderOpen, "Library", true) {

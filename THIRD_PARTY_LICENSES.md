@@ -24,6 +24,7 @@
 | --- | --- |
 | Inter (Regular, Bold) | SIL Open Font License 1.1 |
 | JetBrains Mono (Regular) | SIL Open Font License 1.1 |
+| Bravura (music notation) | SIL Open Font License 1.1 |
 | Typicons (bundled by Shirei) | SIL Open Font License 1.1 |
 
 ## Soundfont and demo content

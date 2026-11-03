@@ -62,6 +62,9 @@ func HandleShortcuts(a *app.App) {
 		}
 	case c.Key == KeyB && c.Mod&primary != 0:
 		a.UI.SideOpen = !a.UI.SideOpen
+	case c.Key == KeyS && c.Mod&primary != 0 && c.Mod&ModShift != 0:
+		a.Prefs.Sheet = !a.Prefs.Sheet
+		a.SavePrefs()
 	case c.Key == KeyRight && c.Mod&ModShift != 0:
 		a.StepThrough(1, true)
 	case c.Key == KeyLeft && c.Mod&ModShift != 0:

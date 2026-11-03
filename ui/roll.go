@@ -64,6 +64,23 @@ func rollWindow(now, visible float64) (lo, hi float64) {
 	return now - visible*0.2 - 1, now + visible*0.8 + 1
 }
 
+// rollVisibleSeconds keeps the falling-note scale stable when the sheet panel
+// takes height away: the visible time window shrinks with the remaining roll
+// height instead of compressing the same number of bars into less space.
+func rollVisibleSeconds(a *app.App, h float32) float64 {
+	visible := 6.0 / a.Prefs.RollZoom
+	if a.Prefs.Sheet && a.Song != nil && h > 0 {
+		full := float64(h) + sheetHeight
+		if full > 0 {
+			visible *= float64(h) / full
+		}
+	}
+	if visible < 1 {
+		visible = 1
+	}
+	return visible
+}
+
 func drawRoll(a *app.App) {
 	w := GetContentWidth()
 	h := GetContentHeight()
@@ -77,7 +94,7 @@ func drawRoll(a *app.App) {
 	min, max := EffectiveKeyRange(a)
 	layout := BuildKeyLayout(w, min, max)
 	now := a.Transport.Time
-	visible := 6.0 / a.Prefs.RollZoom
+	visible := rollVisibleSeconds(a, h)
 	playY := h * 0.80
 	pxPerSec := playY / float32(visible)
 	yAt := func(t float64) float32 {
