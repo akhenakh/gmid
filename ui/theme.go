@@ -21,7 +21,7 @@ var (
 	ColBorder2  = Col("#3b3b58")
 	ColText     = Col("#c6c8c8")
 	ColTextDim  = Col("#8b8b9e")
-	ColTextMute = Col("#5f5f75")
+	ColTextMute = Col("#7f7f97")
 	ColAmber    = Col("#e8a027")
 	ColBlue     = Col("#6270a5")
 	ColRose     = Col("#cb636c")
