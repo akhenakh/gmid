@@ -46,7 +46,7 @@ fi
 
 # Video time where the recorded song is at 0. Measured from the transport clock
 # in the clip (at clip 15s the clock read 14.31s); recalibrate after recording.
-OFFSET=${OFFSET:-0.69}
+OFFSET=${OFFSET:-0.67}
 VOLUME=${VOLUME:-0.8}
 TRIM=$(awk -v o="$OFFSET" 'BEGIN{print (o<0 ? -o : 0)}')
 LEAD=$(awk -v o="$OFFSET" 'BEGIN{print (o>0 ? o : 0)}')

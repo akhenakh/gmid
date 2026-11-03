@@ -14,6 +14,11 @@ PID=""
 export GMID_CONFIG=/tmp/gmid-video-prefs.json
 rm -f "$GMID_CONFIG"
 
+# The project's own assets/ directory (scenes, scripts, clips) shadows the
+# application assets when gmid walks up from the working directory. Point the
+# app at the repository assets so fonts and the soundfont resolve.
+export GMID_ASSETS=/home/akh/dev/gmid/assets
+
 cleanup() {
   if [ -n "$PID" ]; then
     kill "$PID" 2>/dev/null || true

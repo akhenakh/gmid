@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source "$(dirname "$0")/lib.sh" 8804
 start_gmid || exit 1
-drive gmid_settings_set '{"json":"{\"tempoWarnings\":false}"}'
+drive gmid_settings_set '{"json":"{\"tempoWarnings\":false,\"sheet\":false}"}'
 drive gmid_open '{"path":"/home/akh/dev/gmid/assets/demo/Scott Joplin - Entertainer.mid"}'
 hold 2
 drive gmid_transport '{"action":"seek","time":16}'

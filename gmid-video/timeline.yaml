@@ -22,15 +22,15 @@ scenes:
         items:
           - {at: 0, kind: title, text: "gmid", glow: true}
           - {at: 0.7, kind: text, text: "MIDI becomes a piano lesson — written in Go."}
-          - {at: 1.3, kind: note, text: "Piano roll · keyboard · mixer · editors · explorers · MCP", animation: fade-up}
+          - {at: 1.3, kind: note, text: "Piano roll · sheet music · keyboard · mixer · editors · explorers · MCP", animation: fade-up}
     duration: voice
     pad: 1s
     narration: >-
       This is Jee-mid: a desktop piano-learning app written in Go, from the window
       toolkit to the sampler. It opens a MIDI file, turns it into a falling-note
-      piano roll, and gives you a keyboard, a mixer, editors, chord and scale
-      explorers, and an MCP server that lets an AI drive the whole thing. Let me
-      show you what it does.
+      piano roll and a sheet-music view, and gives you a keyboard, a mixer,
+      editors, chord and scale explorers, and an MCP server that lets an AI drive
+      the whole thing. Let me show you what it does.
 
   - id: roll
     title: The falling-note roll
@@ -49,6 +49,23 @@ scenes:
       can transpose the whole piece by a couple of semitones, draw a loop
       directly on the waterfall, and keep drilling the same four bars. The
       floating keyboard follows the same key geometry, so every note lines up.
+
+  - id: notation
+    title: Sheet music
+    transition: {type: cross-dissolve, duration: 450ms}
+    source:
+      app:
+        command: ["/bin/bash", "assets/scripts/notation.sh"]
+        workdir: /home/akh/dev/gmid/gmid-video
+    duration: voice
+    pad: 1s
+    narration: >-
+      The same performance can be read as sheet music. Jee-mid builds a grand
+      staff from the MIDI itself: treble and bass staves, beamed eighths and
+      sixteenths, ties across bar lines, rests, accidentals and triplets. The
+      page follows the bar as it plays, and noteheads are coloured by hand,
+      right and left. Turn the colours off for plain ink, or close the sheet and
+      the roll takes the space back.
 
   - id: mixer
     title: Tracks and the console mixer

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source "$(dirname "$0")/lib.sh" 8809
 start_gmid || exit 1
-drive gmid_settings_set '{"json":"{\"handAssignment\":true,\"handTags\":true,\"chordPrompter\":true,\"stepThrough\":true,\"tapTempo\":true}"}'
+drive gmid_settings_set '{"json":"{\"handAssignment\":true,\"handTags\":true,\"chordPrompter\":true,\"stepThrough\":true,\"tapTempo\":true,\"sheet\":false}"}'
 drive gmid_open '{"path":"/home/akh/dev/gmid/assets/demo/Mozart - Rondo Alla Turca .mid"}'
 hold 2
 drive gmid_transport '{"action":"seek","time":6}'
