@@ -72,7 +72,8 @@ func (l *Library) Scan() error {
 		ext := strings.ToLower(filepath.Ext(path))
 		if ext != ".mid" && ext != ".midi" && ext != ".kar" &&
 			ext != ".musicxml" && ext != ".mxl" && ext != ".xml" &&
-			ext != ".gp" && ext != ".gp3" && ext != ".gp4" && ext != ".gp5" && ext != ".gpx" {
+			ext != ".gp" && ext != ".gp3" && ext != ".gp4" && ext != ".gp5" && ext != ".gpx" &&
+			ext != ".cap" && ext != ".capx" {
 			return nil
 		}
 		st, serr := d.Info()
