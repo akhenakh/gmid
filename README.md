@@ -11,9 +11,7 @@ Tested on macOS and Linux.
 
 ## Install
 
-On macOS, with [Homebrew](https://brew.sh) (cask from
-[akhenakh/homebrew-tap](https://github.com/akhenakh/homebrew-tap)) — this
-installs **`gmid.app`** into `/Applications`:
+On macOS:
 
 ```sh
 brew install --cask akhenakh/tap/gmid
@@ -45,7 +43,7 @@ signed by this repository's release workflow:
 gh attestation verify gmid_<version>_Darwin_arm64.tar.gz --repo akhenakh/gmid
 ```
 
-## Demo video
+## Demo Video
 
 [![Watch the gmid demo](docs/gmid-video.jpg)](https://youtu.be/yJgxQjpdmHo)
 
@@ -85,7 +83,7 @@ Known gaps: Guitar Pro and Capella import use the local `mscore` command when
 available (not bundled); OS-level fullscreen and multi-window; per-channel VU
 meters are shared with the master peak; Starmap is a static chord-star view.
 
-## Build requirements
+## Build Requirements
 
 - Go 1.27+
 - A C compiler (cgo): Xcode command line tools on macOS; on Linux a C/C++
@@ -108,11 +106,6 @@ go test ./...
 go vet ./...
 golangci-lint run
 ```
-
-## Visual QA
-
-Screenshots are reviewed by the local `Qwen3.8-27B-VISION` model; images never
-enter the coding model's context. See `.operator/guides/visual-qa.md`.
 
 ## MCP (drive gmid from an LLM)
 

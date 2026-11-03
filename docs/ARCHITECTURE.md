@@ -40,5 +40,5 @@ fifths, starmap) is rasterized with `fogleman/gg` and displayed with `UseImage`.
 
 ## Invariants
 
-See `.operator/specs/gmid.md` for the durable contract (file safety, metadata,
-lead cut, mute/visibility semantics, loop state reset, tempo corrections).
+File safety, song metadata, lead cut, mute/visibility semantics, loop state
+reset and tempo corrections are covered by the package tests.
