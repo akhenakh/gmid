@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const prefsVersion = 2
@@ -263,4 +264,24 @@ func (p *Prefs) fixup() {
 	if p.LibraryFolder == "" {
 		p.LibraryFolder = DefaultLibrary()
 	}
+	if !validHexColor(p.HandLH) || !validHexColor(p.HandRH) {
+		// Older/zeroed preferences predate hand colours. Restore the stock
+		// pair and turn colouring on so the feature is visible without a
+		// settings trip.
+		if !validHexColor(p.HandLH) {
+			p.HandLH = d.HandLH
+		}
+		if !validHexColor(p.HandRH) {
+			p.HandRH = d.HandRH
+		}
+		p.HandAssignment = true
+	}
+}
+
+func validHexColor(s string) bool {
+	if len(s) != 7 || s[0] != '#' {
+		return false
+	}
+	_, err := strconv.ParseUint(s[1:], 16, 24)
+	return err == nil
 }

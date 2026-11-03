@@ -28,3 +28,17 @@ func TestFixupKeepsDeliberateBuffer(t *testing.T) {
 		t.Fatalf("buffer = %d, want 128", p.BufferFrames)
 	}
 }
+
+func TestFixupRestoresHandColors(t *testing.T) {
+	p := Defaults()
+	p.HandLH = ""
+	p.HandRH = "not-a-color"
+	p.fixup()
+	d := Defaults()
+	if p.HandLH != d.HandLH || p.HandRH != d.HandRH {
+		t.Fatalf("hand colors = %q/%q, want %q/%q", p.HandLH, p.HandRH, d.HandLH, d.HandRH)
+	}
+	if !p.HandAssignment {
+		t.Fatal("hand assignment should be restored with the missing colours")
+	}
+}

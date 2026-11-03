@@ -621,6 +621,12 @@ func ApplyDefaultColors(s *song.Song, lh, rh string) {
 
 // ApplyHandColors recolours an open song when the user changes the hand pair.
 func ApplyHandColors(s *song.Song, lh, rh string) {
+	if lh == "" {
+		lh = theory.DefaultHandLH
+	}
+	if rh == "" {
+		rh = theory.DefaultHandRH
+	}
 	pianoIndex := 0
 	for i := range s.Tracks {
 		t := &s.Tracks[i]

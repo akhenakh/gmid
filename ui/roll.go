@@ -367,9 +367,15 @@ func drawHitEffects(a *app.App, layout []KeyLayout, min int, h, playY float32) {
 
 func handColor(a *app.App, hand string) Vec4 {
 	if hand == "L" {
+		if a.Prefs.HandLH == "" {
+			return Col(theory.DefaultHandLH)
+		}
 		return Col(a.Prefs.HandLH)
 	}
 	if hand == "R" {
+		if a.Prefs.HandRH == "" {
+			return Col(theory.DefaultHandRH)
+		}
 		return Col(a.Prefs.HandRH)
 	}
 	return ColAmber
