@@ -22,14 +22,15 @@ type App struct {
 	SongMinKey int
 	SongMaxKey int
 
-	Engine      Engine
-	LiveKeys    map[int]bool
-	LockedKeys  map[int]bool
-	Mixes       map[int]audio.ChannelMix
-	MixesDirty  bool
-	MIDI        *midiio.Manager
-	ExportState ExportState
-	Lib         *library.Library
+	Engine       Engine
+	LiveKeys     map[int]bool
+	LockedKeys   map[int]bool
+	Mixes        map[int]audio.ChannelMix
+	MixesDirty   bool
+	channelMeter map[int]float64
+	MIDI         *midiio.Manager
+	ExportState  ExportState
+	Lib          *library.Library
 
 	focusSnapshot []focusState
 	Hits          []Hit
@@ -102,6 +103,11 @@ type UIState struct {
 	ScaleType           string
 	ScaleRoot           int
 	ScaleStarmap        bool
+	StarFromRoot        int
+	StarFromType        string
+	StarToRoot          int
+	StarToType          string
+	StarAnimStart       time.Time
 	Confirm             *Confirm
 	MenuAnchor          string
 

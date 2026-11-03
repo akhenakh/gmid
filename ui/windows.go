@@ -567,6 +567,7 @@ func MixerWindow(a *app.App) {
 	if a.Engine != nil {
 		peaks = a.Engine.Snapshot().Peak
 	}
+	levels := a.UpdateChannelMeters()
 	channels := 0
 	seenCh := map[int]bool{}
 	for i := range a.Song.Tracks {
@@ -638,7 +639,7 @@ func MixerWindow(a *app.App) {
 						continue
 					}
 					seen[t.Channel] = true
-					channelStrip(a, t.Channel, t.Name, TrackColor(t.Color), peaks)
+					channelStrip(a, t.Channel, t.Name, TrackColor(t.Color), levels[t.Channel])
 				}
 				for i := range a.Song.Channels {
 					ch := &a.Song.Channels[i]
@@ -646,7 +647,7 @@ func MixerWindow(a *app.App) {
 						continue
 					}
 					seen[ch.Number] = true
-					channelStrip(a, ch.Number, fmt.Sprintf("Channel %d", ch.Number+1), ColTextDim, peaks)
+					channelStrip(a, ch.Number, fmt.Sprintf("Channel %d", ch.Number+1), ColTextDim, levels[ch.Number])
 				}
 			})
 		})
@@ -687,7 +688,7 @@ func channelStrip(a *app.App, ch int, name string, accent Vec4, peak float64) {
 			mix.Reverb = float64(r)
 			a.SetMix(ch, mix)
 		}
-		// Meter (master peak; per-channel buses are not exposed by the synth).
+		// Meter (per-channel activity; the synth exposes one mixed output).
 		FlexSpacer()
 		LevelMeter(peak, accent, 98, 60)
 	})

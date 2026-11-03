@@ -1,6 +1,8 @@
 package app
 
 import (
+	"math"
+
 	"github.com/akhenakh/gmid/internal/audio"
 	"github.com/akhenakh/gmid/internal/smf"
 	"github.com/akhenakh/gmid/internal/song"
@@ -94,4 +96,65 @@ func clampInt(v, lo, hi int) int {
 		return hi
 	}
 	return v
+}
+
+// UpdateChannelMeters returns a smoothed per-channel activity level in 0..1.
+// The synth exposes only one mixed output, so the levels are derived from the
+// notes and live keys scheduled on each channel, scaled by that channel's mix
+// volume. Attack is immediate, release decays across frames like a peak meter.
+func (a *App) UpdateChannelMeters() map[int]float64 {
+	if a.channelMeter == nil {
+		a.channelMeter = map[int]float64{}
+	}
+	sumSq := map[int]float64{}
+	if a.Song != nil && a.Transport.Playing {
+		at := a.Transport.Time
+		for i := range a.Song.Tracks {
+			t := &a.Song.Tracks[i]
+			if !a.Song.IsShown(t) {
+				continue
+			}
+			vol := a.MixFor(t.Channel).Volume
+			for j := range t.Notes {
+				n := &t.Notes[j]
+				if n.StartSec <= at && at < n.EndSec {
+					v := float64(n.Velocity) / 127 * vol
+					sumSq[t.Channel] += v * v
+				}
+			}
+		}
+	}
+	if len(a.LiveKeys) > 0 {
+		vol := a.MixFor(15).Volume
+		v := 100.0 / 127 * vol
+		sumSq[15] += float64(len(a.LiveKeys)) * v * v
+	}
+
+	for ch, sq := range sumSq {
+		inst := math.Sqrt(sq) * 0.5
+		if inst > 1 {
+			inst = 1
+		}
+		prev := a.channelMeter[ch]
+		if inst >= prev {
+			a.channelMeter[ch] = inst
+		} else {
+			a.channelMeter[ch] = prev*0.78 + inst*0.22
+		}
+	}
+	for ch, prev := range a.channelMeter {
+		if _, ok := sumSq[ch]; !ok {
+			next := prev * 0.78
+			if next < 0.01 {
+				delete(a.channelMeter, ch)
+			} else {
+				a.channelMeter[ch] = next
+			}
+		}
+	}
+	out := make(map[int]float64, len(a.channelMeter))
+	for ch, v := range a.channelMeter {
+		out[ch] = v
+	}
+	return out
 }
