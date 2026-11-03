@@ -81,6 +81,8 @@ type UIState struct {
 	FileBrowserOpen     bool
 	LibQuery            string
 	LibScanning         bool
+	LibAdding           bool
+	LibRescan           bool
 	LibraryPath         string
 	LibraryFilter       string
 	LibrarySelected     int

@@ -16,6 +16,7 @@
 | `github.com/jfreymuth/oggvorbis` | MIT |
 | `github.com/fsnotify/fsnotify` | BSD-3-Clause |
 | `github.com/braheezy/shine-mp3` (encoder fork) | MIT |
+| `github.com/ncruces/zenity` | MIT |
 
 ## Fonts
 

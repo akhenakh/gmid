@@ -28,8 +28,14 @@ func LibraryWindow(a *app.App) {
 			if a.UI.LibScanning {
 				Caption("Scanning…")
 			}
+			if a.UI.LibAdding {
+				Caption("Choose a file…")
+			}
 			if CtrlButton(TypRefresh, "Refresh", true) {
 				a.RefreshLibrary()
+			}
+			if CtrlButton(TypFolderAdd, "Add to library…", !a.UI.LibAdding) {
+				a.AddFileToLibrary()
 			}
 			if CtrlButton(TypFolderOpen, "Open a file…", true) {
 				a.UI.FileBrowserOpen = true

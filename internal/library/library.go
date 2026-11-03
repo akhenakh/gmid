@@ -2,6 +2,8 @@
 package library
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -70,10 +72,7 @@ func (l *Library) Scan() error {
 			return nil
 		}
 		ext := strings.ToLower(filepath.Ext(path))
-		if ext != ".mid" && ext != ".midi" && ext != ".kar" &&
-			ext != ".musicxml" && ext != ".mxl" && ext != ".xml" &&
-			ext != ".gp" && ext != ".gp3" && ext != ".gp4" && ext != ".gp5" && ext != ".gpx" &&
-			ext != ".cap" && ext != ".capx" {
+		if !supportedExt(ext) {
 			return nil
 		}
 		st, serr := d.Info()
@@ -171,4 +170,82 @@ func fuzzyScore(query, name string) (int, bool) {
 		}
 	}
 	return score, qi == len(q)
+}
+
+// SupportedExt reports whether ext is a score format gmid can import.
+func SupportedExt(ext string) bool { return supportedExt(strings.ToLower(ext)) }
+
+func supportedExt(ext string) bool {
+	switch ext {
+	case ".mid", ".midi", ".kar",
+		".musicxml", ".xml", ".mxl",
+		".gp", ".gp3", ".gp4", ".gp5", ".gpx",
+		".cap", ".capx":
+		return true
+	}
+	return false
+}
+
+// CopyInto copies a supported score into the library root. If the source is
+// already inside the library, it is returned unchanged. Name collisions get a
+// " (2)" suffix instead of overwriting an existing song.
+func CopyInto(src, root string) (dst string, copied bool, err error) {
+	st, err := os.Stat(src)
+	if err != nil {
+		return "", false, err
+	}
+	if !st.Mode().IsRegular() {
+		return "", false, fmt.Errorf("%s is not a file", filepath.Base(src))
+	}
+	if !supportedExt(strings.ToLower(filepath.Ext(src))) {
+		return "", false, fmt.Errorf("unsupported file type: %s", filepath.Ext(src))
+	}
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return "", false, err
+	}
+	srcAbs, err := filepath.Abs(src)
+	if err != nil {
+		return "", false, err
+	}
+	rootAbs, err := filepath.Abs(root)
+	if err != nil {
+		return "", false, err
+	}
+	if rel, err := filepath.Rel(rootAbs, srcAbs); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return src, false, nil
+	}
+	dst = freeName(filepath.Join(root, filepath.Base(src)))
+	in, err := os.Open(src)
+	if err != nil {
+		return "", false, err
+	}
+	defer func() { _ = in.Close() }()
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return "", false, err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		_ = out.Close()
+		_ = os.Remove(dst)
+		return "", false, err
+	}
+	if err := out.Close(); err != nil {
+		_ = os.Remove(dst)
+		return "", false, err
+	}
+	return dst, true, nil
+}
+
+func freeName(path string) string {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return path
+	}
+	ext := filepath.Ext(path)
+	stem := strings.TrimSuffix(path, ext)
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s (%d)%s", stem, i, ext)
+		if _, err := os.Stat(candidate); os.IsNotExist(err) {
+			return candidate
+		}
+	}
 }
