@@ -272,6 +272,28 @@ func drawRoll(a *app.App) {
 	})
 }
 
+// glowQuantum is the step, in points, at which animated glow sizes are
+// rounded. Shirei's shadow cache is keyed by the exact size, corners, blur
+// radius and alpha, so a glow that grows smoothly generates a new Gaussian
+// blur (and a new GPU upload) on every frame. Snapping to a coarse grid reuses
+// the same few blurred bitmaps for the life of the effect.
+const glowQuantum = 8
+
+func glowSize(sz float32) float32 {
+	return float32(math.Round(float64(sz)/glowQuantum)) * glowQuantum
+}
+
+// glowBall draws a soft halo behind a smoothly growing core. Only the halo is
+// cached: its shape changes on the coarse glow grid, while the core can grow
+// every frame without invalidating the (expensive) blur.
+func glowBall(cx, cy, size float32, fill Vec4, blur float32) {
+	halo := glowSize(size)
+	Element(Attrs(Float(cx-halo/2, cy-halo/2), FixSize(halo, halo),
+		Corners(halo/2), NoAnimate, Glow(blur)))
+	Element(Attrs(Float(cx-size/2, cy-size/2), FixSize(size, size),
+		Corners(size/2), BackgroundVec(fill), NoAnimate))
+}
+
 func drawHitEffects(a *app.App, layout []KeyLayout, min int, h, playY float32) {
 	now := time.Now()
 	for _, hit := range a.Hits {
@@ -311,13 +333,10 @@ func drawHitEffects(a *app.App, layout []KeyLayout, min int, h, playY float32) {
 				sz := (14 + float32(i)*8) * (1 + t)
 				px := cx + float32(i-1)*10*t
 				py := playY - (18+float32(i)*10)*t
-				Element(Attrs(Float(px-sz/2, py-sz/2), FixSize(sz, sz), Corners(sz/2),
-					BackgroundVec(Alpha(Col("#9a9aa8"), .25*fade)), NoAnimate, Glow(10)))
+				glowBall(px, py, sz, Alpha(Col("#9a9aa8"), .25*fade), 10)
 			}
 		case "aura":
-			sz := k.W + 30*t
-			Element(Attrs(Float(cx-sz/2, playY-sz/2), FixSize(sz, sz), Corners(sz/2),
-				BackgroundVec(Alpha(col, .20*fade)), NoAnimate, Glow(16)))
+			glowBall(cx, playY, k.W+30*t, Alpha(col, .20*fade), 16)
 		case "nova":
 			for i := 0; i < 8; i++ {
 				ang := float64(i) * math.Pi / 4
@@ -341,9 +360,7 @@ func drawHitEffects(a *app.App, layout []KeyLayout, min int, h, playY float32) {
 					BackgroundVec(Alpha(col, fade*float32(1-float32(i)/6))), NoAnimate))
 			}
 		default: // glow
-			sz := 26 + 70*t
-			Element(Attrs(Float(cx-sz/2, playY-sz/2), FixSize(sz, sz), Corners(sz/2),
-				BackgroundVec(Alpha(col, .35*fade)), NoAnimate, Glow(14)))
+			glowBall(cx, playY, 26+70*t, Alpha(col, .35*fade), 14)
 		}
 	}
 }

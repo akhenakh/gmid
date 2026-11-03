@@ -45,6 +45,12 @@ type App struct {
 	Status string
 	Scene  string
 
+	// UI clock: audio publishes its position once per buffer, so the UI
+	// interpolates it across frames (see SyncEngine).
+	clockTime  float64
+	clockWall  time.Time
+	clockValid bool
+
 	UI UIState
 }
 
