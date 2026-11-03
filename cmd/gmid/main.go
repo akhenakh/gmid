@@ -48,6 +48,9 @@ func main() {
 	if _, err := os.Stat(assetsDir); err != nil {
 		log.Printf("assets directory %q not found; run `make assets`", assetsDir)
 	}
+	if icon := filepath.Join(assetsDir, "icons", "gmid-256.png"); fileExists(icon) {
+		shireiapp.SetupIcon(icon)
+	}
 
 	if fonts := config.FontPaths(); len(fonts) > 0 {
 		UseFontFiles(fonts...)
@@ -195,4 +198,9 @@ func prepareScene(a *app.App, scene string) {
 	case "export":
 		a.UI.ExportOpen = true
 	}
+}
+
+func fileExists(path string) bool {
+	st, err := os.Stat(path)
+	return err == nil && !st.IsDir()
 }

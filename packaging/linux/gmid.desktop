@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=gmid
+GenericName=MIDI Player
+Comment=MIDI player and editor with a falling-note piano roll
+Exec=gmid
+Icon=gmid
+Terminal=false
+Categories=AudioVideo;Audio;Music;Midi;
+StartupWMClass=gmid
+Keywords=MIDI;piano;roll;music;editor;

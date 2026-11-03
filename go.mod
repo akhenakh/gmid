@@ -12,6 +12,7 @@ require (
 	gitlab.com/gomidi/midi/v2 v2.3.24
 	go.hasen.dev/generic v0.1.8
 	go.hasen.dev/shirei v0.8.0
+	golang.org/x/image v0.43.0
 )
 
 require (
@@ -51,7 +52,6 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
 	go.hasen.dev/udplib v0.1.0 // indirect
-	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect

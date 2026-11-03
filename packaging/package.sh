@@ -21,10 +21,11 @@ Linux_*)
 	cp "$BIN" "$STAGE/gmid"
 	chmod +x "$STAGE/gmid"
 	cp -R assets "$STAGE/assets"
+	cp packaging/linux/gmid.desktop "$STAGE/gmid.desktop"
 	cp README.md LICENSE THIRD_PARTY_LICENSES.md "$STAGE/"
 	cp -R docs "$STAGE/docs"
 	tar -czf "$OUT" -C "$STAGE" \
-		gmid assets docs README.md LICENSE THIRD_PARTY_LICENSES.md
+		gmid assets docs README.md LICENSE THIRD_PARTY_LICENSES.md gmid.desktop
 	;;
 Darwin_*)
 	APP="$(packaging/macos/bundle.sh "$BIN" "$VERSION")"

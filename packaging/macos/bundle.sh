@@ -20,6 +20,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/gmid"
 chmod +x "$APP/Contents/MacOS/gmid"
 cp -R assets "$APP/Contents/Resources/assets"
+cp assets/icons/gmid.icns "$APP/Contents/Resources/gmid.icns"
 
 cat >"$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -34,6 +35,8 @@ cat >"$APP/Contents/Info.plist" <<PLIST
 	<string>space.inair.gmid</string>
 	<key>CFBundleExecutable</key>
 	<string>gmid</string>
+	<key>CFBundleIconFile</key>
+	<string>gmid.icns</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleInfoDictionaryVersion</key>
