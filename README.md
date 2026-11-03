@@ -19,6 +19,13 @@ brew install --cask akhenakh/tap/gmid
 
 The cask ad-hoc signs the bundle at install time.
 
+On Arch Linux and derivatives, `gmid-piano` is packaged in the
+[AUR](https://aur.archlinux.org/packages/gmid-piano):
+
+```sh
+paru -S gmid-piano
+```
+
 Prebuilt archives for Linux and macOS (x86_64 and arm64) are attached to each
 [release](https://github.com/akhenakh/gmid/releases). On Linux the archive
 contains the `gmid` binary next to its `assets/` directory, which must stay
