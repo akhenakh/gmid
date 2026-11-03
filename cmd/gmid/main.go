@@ -48,7 +48,7 @@ func main() {
 	if _, err := os.Stat(assetsDir); err != nil {
 		log.Printf("assets directory %q not found; run `make assets`", assetsDir)
 	}
-	if icon := filepath.Join(assetsDir, "icons", "gmid-256.png"); fileExists(icon) {
+	if icon := filepath.Join(assetsDir, "icons", "gmid.png"); fileExists(icon) {
 		shireiapp.SetupIcon(icon)
 	}
 

@@ -70,6 +70,14 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println(path)
+
+	// Canonical icon name used by the Linux desktop entry (`Icon=gmid`).
+	path = filepath.Join(out, "gmid.png")
+	if err := os.WriteFile(path, bySize[256], 0o644); err != nil {
+		fmt.Fprintln(os.Stderr, "mkicon:", err)
+		os.Exit(1)
+	}
+	fmt.Println(path)
 }
 
 func render() (*image.RGBA, error) {
