@@ -137,8 +137,8 @@ gitlab.com/gomidi/midi/v2 v2.3.24 h1:afkq5nhlzKvZaj9QK80YbK8tH3lIlKLnPPP9HxxD7Do
 gitlab.com/gomidi/midi/v2 v2.3.24/go.mod h1:jDpP4O4skYi+7iVwt6Zyp18bd2M4hkjtMuw2cmgKgfw=
 go.hasen.dev/generic v0.1.8 h1:T0xTGnS4zPpKG4RDL5nD4GycZPQGZ0yCP2L4pZqlttw=
 go.hasen.dev/generic v0.1.8/go.mod h1:SB5p5H5YYQHnqjSFHXW89C6iH6qF/669p4640DPWGbA=
-go.hasen.dev/shirei v0.8.0 h1:x5STaAenD4eHcquFyUmo7Z791KwLz6gi5fIm7mj7SBs=
-go.hasen.dev/shirei v0.8.0/go.mod h1:3IAHXaqUa5rFXHVhOV/1Y5SkTmrDprRoh7DwWJ8sRFw=
+go.hasen.dev/shirei v0.9.0 h1:eHpKJBTZxoKtmN4zfp9ARTww9t8gP3A+XgJbgzubNpk=
+go.hasen.dev/shirei v0.9.0/go.mod h1:3IAHXaqUa5rFXHVhOV/1Y5SkTmrDprRoh7DwWJ8sRFw=
 go.hasen.dev/udplib v0.1.0 h1:w/6DexYgJCkn/kvjJ64XCH3krOsIy71Jwbvz/UznC/k=
 go.hasen.dev/udplib v0.1.0/go.mod h1:M/YJ8FXrtNVcHhIBzU+GwY5VI08YGvDuLFWIOkDrEPk=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=

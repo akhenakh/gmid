@@ -12,7 +12,7 @@ require (
 	github.com/sinshu/go-meltysynth v0.0.0-20230205031334-05d311382fc4
 	gitlab.com/gomidi/midi/v2 v2.3.24
 	go.hasen.dev/generic v0.1.8
-	go.hasen.dev/shirei v0.8.0
+	go.hasen.dev/shirei v0.9.0
 	golang.org/x/image v0.44.0
 )
 
