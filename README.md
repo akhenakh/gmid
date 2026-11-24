@@ -98,8 +98,6 @@ reduction, not a preserved original engraving.
 - A C compiler (cgo): Xcode command line tools on macOS; on Linux a C/C++
   toolchain and `libasound2-dev`
 - `make` (optional)
-- On Linux, `zenity` or `kdialog` for the native **Add to library** picker
-  (optional; the rest of the app works without it)
 
 `make assets` downloads the GeneralUser GS soundfont on first use; fonts, demo
 songs and the DecentSampler demo instrument are committed.

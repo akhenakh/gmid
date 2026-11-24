@@ -6,6 +6,7 @@ import (
 
 	"github.com/akhenakh/gmid/internal/app"
 	"github.com/akhenakh/gmid/internal/config"
+	importer "github.com/akhenakh/gmid/internal/import"
 
 	. "go.hasen.dev/shirei"
 	. "go.hasen.dev/shirei/widgets"
@@ -533,7 +534,7 @@ func FileBrowserWindow(a *app.App) {
 			Width: 720,
 			Files: true,
 			Dirs:  true,
-			Exts:  []string{"mid", "midi", "kar", "musicxml", "xml", "mxl", "gp", "gp3", "gp4", "gp5", "gpx", "cap", "capx"},
+			Exts:  importer.SupportedExtensions(),
 		}
 		if FileBrowserPanel(&a.UI.LibraryPath, &a.UI.LibraryFilter, &a.UI.LibrarySelected,
 			&a.UI.LibrarySelection, attrs) {

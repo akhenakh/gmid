@@ -81,12 +81,15 @@ type UIState struct {
 	FileBrowserOpen     bool
 	LibQuery            string
 	LibScanning         bool
-	LibAdding           bool
 	LibRescan           bool
 	LibraryPath         string
 	LibraryFilter       string
 	LibrarySelected     int
 	LibrarySelection    string
+	LibAddOpen          bool
+	LibAddReturn        bool
+	LibAddStart         string
+	LibAddSelection     string
 	MixerOpen           bool
 	PlaybackEditorOpen  bool
 	NoteEditorActive    bool

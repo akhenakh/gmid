@@ -530,6 +530,9 @@ func Overlays(a *app.App) {
 	if a.UI.LibraryOpen {
 		LibraryWindow(a)
 	}
+	if a.UI.LibAddOpen || a.UI.LibAddReturn {
+		LibraryAddWindow(a)
+	}
 	if a.UI.FileBrowserOpen {
 		FileBrowserWindow(a)
 	}

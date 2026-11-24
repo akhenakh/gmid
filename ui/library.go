@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/akhenakh/gmid/internal/app"
+	importer "github.com/akhenakh/gmid/internal/import"
 	"github.com/akhenakh/gmid/internal/library"
 
 	. "go.hasen.dev/shirei"
@@ -28,14 +29,11 @@ func LibraryWindow(a *app.App) {
 			if a.UI.LibScanning {
 				Caption("Scanning…")
 			}
-			if a.UI.LibAdding {
-				Caption("Choose a file…")
-			}
 			if CtrlButton(TypRefresh, "Refresh", true) {
 				a.RefreshLibrary()
 			}
-			if CtrlButton(TypFolderAdd, "Add to library…", !a.UI.LibAdding) {
-				a.AddFileToLibrary()
+			if CtrlButton(TypFolderAdd, "Add to library…", true) {
+				a.OpenLibraryAdd()
 			}
 			if CtrlButton(TypFolderOpen, "Open a file…", true) {
 				a.UI.FileBrowserOpen = true
@@ -85,6 +83,35 @@ func LibraryWindow(a *app.App) {
 			}
 		})
 	})
+}
+
+// LibraryAddWindow browses for a score to copy into the library. It runs as
+// its own top-level modal — the library closes while it is open — so Escape and
+// scrim clicks dismiss only this dialog, and both accept and cancel return to
+// the library.
+func LibraryAddWindow(a *app.App) {
+	if !a.UI.LibAddOpen {
+		if a.UI.LibAddReturn {
+			a.UI.LibAddReturn = false
+			a.UI.LibraryOpen = true
+		}
+		return
+	}
+	a.UI.LibAddReturn = true
+	attrs := FileBrowserAttrs{
+		Title: "Add a song to the library",
+		Width: 680,
+		Files: true,
+		Start: a.UI.LibAddStart,
+		Exts:  importer.SupportedExtensions(),
+	}
+	if FileBrowserModal(&a.UI.LibAddOpen, &a.UI.LibAddSelection, attrs) {
+		path := a.UI.LibAddSelection
+		a.UI.LibAddSelection = ""
+		a.UI.LibAddReturn = false
+		a.UI.LibraryOpen = true
+		a.AddFileToLibrary(path)
+	}
 }
 
 func demoLabel(path string) string {

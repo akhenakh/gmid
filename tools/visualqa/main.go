@@ -131,6 +131,7 @@ Return a short JSON object on the last line: {"pass": true|false, "issues": ["..
 		"mixer":          "This is the console mixer: check channel strips, sliders, meters and header spacing.",
 		"settings":       "This is the settings window: check group headings, row alignment, control widths and scrolling.",
 		"library":        "This is the file browser: check the path field, file list and demo buttons.",
+		"library-add":    "This is the in-app Add to library file browser in its modal: check the title, Cancel button, breadcrumbs, quick-jump places, filter field, sort tiles, file list with Name/Date/Size columns, and that the card is centred with no clipped or overlapping labels.",
 		"starmap":        "This is the Scale Explorer chord-star view: a twelve-node circle with a highlighted scale ring, a highlighted triad star and note labels. Check node/ring alignment, legible labels, sufficient contrast, and that nothing is clipped.",
 		"icon":           "This is the gmid app icon: an amber/orange rounded square with a large dark lowercase Inter Bold 'g' centered on it. Check that the glyph is optically centred, not clipped, consistent in weight, and that the corner radius and flat background look clean at icon scale.",
 		"scale-explorer": "This is the Scale Explorer with the circle of fifths: check the circle geometry, selected-key outline, chord cards and toggle row.",

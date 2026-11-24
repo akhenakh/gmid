@@ -8,11 +8,10 @@ require (
 	github.com/gen2brain/malgo v0.11.27
 	github.com/mark3labs/mcp-go v1.5.0
 	github.com/mewkiz/flac v1.0.14
-	github.com/ncruces/zenity v0.10.15
 	github.com/sinshu/go-meltysynth v0.0.0-20230205031334-05d311382fc4
 	gitlab.com/gomidi/midi/v2 v2.3.24
 	go.hasen.dev/generic v0.1.8
-	go.hasen.dev/shirei v0.9.0
+	go.hasen.dev/shirei v0.10.0
 	golang.org/x/image v0.44.0
 )
 
@@ -23,7 +22,6 @@ require (
 	github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc // indirect
 	github.com/BurntSushi/xgbutil v0.0.0-20190907113008-ad855c713046 // indirect
 	github.com/ByteArena/poly2tri-go v0.0.0-20170716161910-d102ad91854f // indirect
-	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/anthonynsimon/bild v0.14.0 // indirect
 	github.com/benoitkugler/textlayout v0.3.2 // indirect
@@ -31,7 +29,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cli/browser v1.3.0 // indirect
 	github.com/dboslee/lru v0.0.1 // indirect
-	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-fonts/latin-modern v0.3.3 // indirect
@@ -42,10 +39,8 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/icza/bitio v1.1.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
-	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
 	github.com/mewkiz/pkg v0.0.0-20250417130911-3f050ff8c56d // indirect
 	github.com/mewpkg/term v0.0.0-20241026122259-37a80af23985 // indirect
-	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect

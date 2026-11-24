@@ -180,6 +180,9 @@ func prepareScene(a *app.App, scene string) {
 		a.UI.MixerOpen = true
 	case "library":
 		a.UI.LibraryOpen = true
+	case "library-add":
+		a.UI.LibAddOpen = true
+		a.UI.LibAddStart = config.DownloadsDir()
 	case "settings":
 		a.UI.SettingsOpen = true
 	case "presentation":
